@@ -18,15 +18,16 @@ ekko-studio plugins link "$PWD"
 npm run dev
 ```
 
-`npm run dev` 登记项目并提示打开 Studio → 插件中心 → 开发插件 → 开始调试。
+`npm run dev` 登记项目并提示打开 Studio → 插件中心 → 启用。
 CLI 和运行中的 Studio 必须使用同一个 `HERMES_WEB_UI_HOME`。此项目直接运行 `.mjs`，无需编译。
 宿主先运行 harness，再复制开发快照、监听改动并重载。失败时保留上一可用版本。
-调试会替换当前安装的同 ID 插件，保留其数据；需要完全隔离时使用单独的 Studio 数据目录。
-停止调试保留最后快照；回到随 Studio 分发的版本可安装 `builtin:omp`。
+启用开发链接会替换当前安装的同 ID 插件，保留其数据；需要完全隔离时使用单独的 Studio 数据目录。
+禁用保留最后快照；回到随 Studio 分发的版本可安装 `builtin:omp`。
 
 在 Agent 管理里安装 OMP 引擎，或在 OMP 设置页填写已有可执行文件的绝对路径。
 global 模式使用本插件设置的原生模型；scoped 模式使用 Studio 本轮注入的模型。
 引擎从官方 GitHub Release 下载并验证校验和，独立于插件版本，不随源码仓库打包。
+Agent 管理支持删除受管引擎和开启自动更新；删除保留设置和会话。自定义可执行文件由外部管理，不支持删除或自动更新。
 
 ## 开发文档和 harness
 
@@ -34,7 +35,7 @@ global 模式使用本插件设置的原生模型；scoped 模式使用 Studio �
 - [开发规范](docs/DEVELOPMENT.md)、[OMP 数据和运行契约](docs/CONTRACTS.md)
 - [宿主类型](sdk/src/index.ts)、[Agent 类型](sdk/src/agents.ts)
 
-指南和 SDK 随项目保存，来源为 Studio PR #3774 的 `8c71b43e10a4a2f211e378aad3ec1d85e78253e3`。
+指南和 SDK 随项目保存，管理接口与 Studio PR #3774 的 Agent API v1 保持一致。
 升级 SDK 时一起更新指南。修改公开字段或持久化结构时，在同一次提交直接编辑
 `contracts/plugin.json` 和相关 Markdown，并修改边界测试；没有文档生成命令。
 

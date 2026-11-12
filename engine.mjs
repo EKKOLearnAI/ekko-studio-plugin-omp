@@ -48,6 +48,11 @@ export async function engineStatus(dataDir, configured, signal) {
     return { installed: false, version: '', source: 'not-installed', error: error.message }
   }
 }
+export async function removeEngine(dataDir, signal) {
+  signal?.throwIfAborted()
+  await rm(join(dataDir, 'engine.json'), { force: true })
+  await rm(join(dataDir, 'engines'), { recursive: true, force: true })
+}
 let latest
 export async function latestVersion(signal) {
   if (latest && Date.now() - latest.at < 300000) return latest.version

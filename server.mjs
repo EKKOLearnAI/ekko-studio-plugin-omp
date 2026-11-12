@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile, rm, access } from 'node:fs/promises'
 import { join, relative, isAbsolute, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { childEnvironment, engineStatus, latestVersion, selectedExecutable, installEngine } from './engine.mjs'
+import { childEnvironment, engineStatus, latestVersion, selectedExecutable, installEngine, removeEngine, binaryAsset } from './engine.mjs'
 import { OmpRpc } from './rpc.mjs'
 import { readSettings, saveSettings, maskSecrets, accountKey } from './settings.mjs'
 
@@ -60,6 +60,14 @@ export function apply(ctx) {
       upgrade: async (input, run) => {
         if ((await readSettings(ctx, run.identity)).executable) throw new Error('Clear the custom executable to use Studio-managed OMP updates')
         return installEngine(dataDir, input.version, run.signal, run.progress)
+      },
+      remove: async run => {
+        if ((await readSettings(ctx, run.identity)).executable) throw new Error('This executable is managed outside Studio and cannot be removed here')
+        await removeEngine(dataDir, run.signal)
+      },
+      supportsAutoUpdate: async run => {
+        if ((await readSettings(ctx, run.identity)).executable) return false
+        try { binaryAsset(); return true } catch { return false }
       },
     },
     modes: { global: { listModels: run => catalog(ctx, run.identity, run.signal) }, scoped: { protocols: Object.keys(api) } },
