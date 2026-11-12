@@ -54,16 +54,31 @@ export async function removeEngine(dataDir, signal) {
   await rm(join(dataDir, 'engines'), { recursive: true, force: true })
 }
 let latest
+const releaseError = message => Object.assign(new Error(message), { status: 503, code: 'OMP_RELEASE_LOOKUP' })
 export async function latestVersion(signal) {
+  signal?.throwIfAborted()
   if (latest && Date.now() - latest.at < 300000) return latest.version
-  const response = await fetch('https://api.github.com/repos/can1357/oh-my-pi/releases/latest', {
-    signal, headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Ekko-Studio-OMP' },
-  })
-  if (!response.ok) throw new Error(`OMP release lookup returned ${response.status}`)
-  const version = String((await response.json()).tag_name || '').replace(/^v/, '')
-  if (!exactVersion.test(version)) throw new Error('OMP release has an invalid version')
-  latest = { version, at: Date.now() }
-  return version
+  try {
+    // The public release redirect works without consuming GitHub's anonymous REST quota.
+    const response = await fetch(`${repository}/releases/latest`, {
+      method: 'HEAD', redirect: 'manual',
+      signal: AbortSignal.any([AbortSignal.timeout(20000), ...(signal ? [signal] : [])]),
+      headers: { 'User-Agent': 'Ekko-Studio-OMP' },
+    })
+    if (![301, 302, 303, 307, 308].includes(response.status)) throw releaseError(`OMP release lookup returned HTTP ${response.status}; retry later`)
+    const location = response.headers.get('location')
+    if (!location) throw releaseError('OMP release lookup did not return a release redirect')
+    const target = new URL(location, repository), prefix = '/can1357/oh-my-pi/releases/tag/'
+    const version = target.pathname.slice(prefix.length).replace(/^v/, '')
+    if (target.origin !== 'https://github.com' || !target.pathname.startsWith(prefix) || target.search || target.hash || !exactVersion.test(version)) throw releaseError('OMP release lookup returned an invalid release redirect')
+    signal?.throwIfAborted()
+    latest = { version, at: Date.now() }
+    return version
+  } catch (error) {
+    signal?.throwIfAborted()
+    if (error.code === 'OMP_RELEASE_LOOKUP') throw error
+    throw releaseError(`Unable to check OMP releases: ${error.message}`)
+  }
 }
 export function binaryAsset(platform = process.platform, arch = process.arch) {
   if (!['darwin', 'linux', 'win32'].includes(platform) || !['arm64', 'x64'].includes(arch)) throw new Error('OMP supports macOS, Linux and Windows on x64 or arm64')

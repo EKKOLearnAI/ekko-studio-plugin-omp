@@ -27,6 +27,7 @@ CLI 和运行中的 Studio 必须使用同一个 `HERMES_WEB_UI_HOME`。此项�
 在 Agent 管理里安装 OMP 引擎，或在 OMP 设置页填写已有可执行文件的绝对路径。
 global 模式使用本插件设置的原生模型；scoped 模式使用 Studio 本轮注入的模型。
 引擎从官方 GitHub Release 下载并验证校验和，独立于插件版本，不随源码仓库打包。
+最新版本通过官方 Release 跳转查询，不依赖 GitHub 匿名 REST API 配额或访问令牌。
 Agent 管理支持删除受管引擎和开启自动更新；删除保留设置和会话。自定义可执行文件由外部管理，不支持删除或自动更新。
 
 ## 开发文档和 harness
