@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "OMP 设置 RPC、账号存储和本地恢复格式；宿主 Agent 事件/结果类型见 sdk/src/agents.ts 和 docs/CONTRACTS.md。",
+  "description": "OMP 设置 RPC、账号存储和本地恢复格式；Agent 删除及自动更新能力使用 sdk/src/agents.ts，具体数据保留语义见 docs/CONTRACTS.md。",
   "models": {
     "empty": {
       "type": "null",

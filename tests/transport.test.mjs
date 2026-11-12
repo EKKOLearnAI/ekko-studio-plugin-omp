@@ -1,10 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, writeFile, access } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { OmpRpc } from '../rpc.mjs'
-import { binaryAsset, installEngine, engineStatus } from '../engine.mjs'
+import { binaryAsset, installEngine, engineStatus, removeEngine } from '../engine.mjs'
 import { createReadStream } from 'node:fs'
 import { Readable } from 'node:stream'
 import { createHash } from 'node:crypto'
@@ -32,7 +32,7 @@ test('a corrupt download retains the selected engine and removes the partial ins
   assert.deepEqual(await readdir(join(directory, 'engines')), [])
 })
 
-test('installs a verified real engine in the private directory', { skip: !process.env.STUDIO_TEST_OMP_BINARY, timeout: 60000 }, async t => {
+test('installs and removes a verified real engine only in the private directory', { skip: !process.env.STUDIO_TEST_OMP_BINARY, timeout: 60000 }, async t => {
   const directory = await mkdtemp(join(tmpdir(), 'omp-managed-')), binary = process.env.STUDIO_TEST_OMP_BINARY
   t.after(() => rm(directory, { recursive: true, force: true }))
   const hash = createHash('sha256')
@@ -49,4 +49,9 @@ test('installs a verified real engine in the private directory', { skip: !proces
   assert.equal(status.source, 'managed')
   assert.equal(status.version, '18.19.0')
   assert.equal(await readFile(join(directory, 'engines/18.19.0/LICENSE'), 'utf8'), 'MIT engine license fixture')
+  await writeFile(join(directory, 'keep-settings'), 'keep')
+  await removeEngine(directory, new AbortController().signal)
+  assert.equal((await engineStatus(directory, '', new AbortController().signal)).installed, false)
+  assert.equal(await readFile(join(directory, 'keep-settings'), 'utf8'), 'keep')
+  await access(binary)
 })

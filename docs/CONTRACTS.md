@@ -32,6 +32,16 @@ global 原生模型及 scoped 的 chat_completions/codex_responses/anthropic_mes
 global 模型目录通过临时 RPC 进程的 `get_available_models` 获取。
 引擎未安装返回 `not_installed`；无可用模型返回 `auth_required`；可用时返回 `ready`。
 管理接口返回状态、设置路由 `{ viewId: 'settings' }`、版本检查及 `{ installedVersion }`。
+`management.remove(ctx)` 仅移除私有目录内的 `engine.json` 与 `engines/`，保留设置、模型缓存和会话。
+`management.supportsAutoUpdate(ctx)` 返回 boolean；受支持平台的受管引擎返回 true，
+配置自定义可执行文件时返回 false，删除也会拒绝该外部文件。宿主负责持久化开关、闲置等待与运行互斥，
+以激活身份执行全局自动更新；手动管理操作仍使用真实调用身份。
+
+版本查询对官方 `releases/latest` 发出 HEAD 请求，仅接受同一仓库的精确版本跳转，
+不调用限额较低的匿名 REST API，也不读取 GitHub token。成功结果在内存缓存五分钟；
+失败不缓存为版本、不回退为已安装版本，并支持取消和二十秒请求超时。
+上游异常以 `OMP_RELEASE_LOOKUP` / HTTP 503 返回，重试成功后继续正常安装；
+下载仍使用精确版本地址，验证平台资产的 SHA-256 及二进制版本后才切换引擎。
 
 `createSession` 消费宿主 runtimeDir 和可选 checkpoint。`run` 消费输入、历史、指令、
 真实身份、workspaceDir、模型、受管 MCP、附件、取消信号、资源清理和交互通道。
@@ -54,6 +64,11 @@ secret 输入和不支持的 form 自动取消，普通状态经 status 事件�
   null 表示新会话；绝对路径或越界路径拒绝，文件不存在则开启新会话。
 - `turns/<runId>/`：models.yml、config.yml、mcp.json、instructions.md，仅本轮存在。
 - `sessions/`：OMP 自己维护的原生会话记录，不解析或自行迁移其内部格式。
+
+0.1.6 改用官方 Release 跳转查询版本，避免匿名 API 配额耗尽导致安装或更新失败；不改变数据格式。
+
+0.1.5 增加受管引擎删除和自动更新能力，升级不会自动开启更新；已有设置和恢复格式不变。
+删除受管引擎只清理其二进制及指针，账号设置和会话保留。
 
 0.1.4 只迁移源码归属和更换官网标识；ID、命名空间、版本 1 checkpoint 及已有设置保持兼容。
 以后修改上述结构时必须同时更新契约、本文、相关指南及实际边界测试；改变持久化语义需解释
