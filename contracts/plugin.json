@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 1,
+  "description": "OMP 设置 RPC、账号存储和本地恢复格式；宿主 Agent 事件/结果类型见 sdk/src/agents.ts 和 docs/CONTRACTS.md。",
+  "models": {
+    "empty": {
+      "type": "null",
+      "description": "无参数的设置读取请求。"
+    },
+    "settings": {
+      "type": "object",
+      "description": "真实账号/Profile 的持久化设置，不包含引擎探测状态。",
+      "properties": {
+        "executable": {
+          "type": "string",
+          "description": "空表示受管引擎；非空必须为绝对路径。",
+          "maxLength": 2048
+        },
+        "defaultModel": {
+          "type": "string",
+          "description": "默认 provider/model；空时由 OMP 选择。",
+          "maxLength": 500
+        },
+        "models": {
+          "type": "object",
+          "description": "原生 models.yml 的 JSON 等价配置。",
+          "properties": {
+            "providers": {
+              "type": "object",
+              "description": "提供商名到原生提供商配置的映射；字段由 OMP 定义。",
+              "properties": {},
+              "required": [],
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "providers"
+          ],
+          "additionalProperties": true
+        },
+        "config": {
+          "type": "object",
+          "description": "原生 config.yml；由 OMP 校验可用字段。",
+          "properties": {},
+          "required": [],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "executable",
+        "defaultModel",
+        "models",
+        "config"
+      ],
+      "additionalProperties": false
+    },
+    "settingsInput": {
+      "type": "object",
+      "description": "保存设置；兼容读取结果中的 status，多余字段不会持久化。",
+      "properties": {
+        "executable": {
+          "type": "string",
+          "description": "空表示受管引擎；非空必须为绝对路径。",
+          "maxLength": 2048
+        },
+        "defaultModel": {
+          "type": "string",
+          "description": "默认 provider/model；空时由 OMP 选择。",
+          "maxLength": 500
+        },
+        "models": {
+          "type": "object",
+          "description": "原生 models.yml 的 JSON 等价配置。",
+          "properties": {
+            "providers": {
+              "type": "object",
+              "description": "提供商名到原生提供商配置的映射；字段由 OMP 定义。",
+              "properties": {},
+              "required": [],
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "providers"
+          ],
+          "additionalProperties": true
+        },
+        "config": {
+          "type": "object",
+          "description": "原生 config.yml；由 OMP 校验可用字段。",
+          "properties": {},
+          "required": [],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "executable",
+        "defaultModel",
+        "models",
+        "config"
+      ],
+      "additionalProperties": true
+    },
+    "settingsResult": {
+      "type": "object",
+      "description": "遮蔽密钥后的设置及当前引擎状态。",
+      "properties": {
+        "executable": {
+          "type": "string",
+          "description": "空表示受管引擎；非空必须为绝对路径。",
+          "maxLength": 2048
+        },
+        "defaultModel": {
+          "type": "string",
+          "description": "默认 provider/model；空时由 OMP 选择。",
+          "maxLength": 500
+        },
+        "models": {
+          "type": "object",
+          "description": "原生 models.yml 的 JSON 等价配置。",
+          "properties": {
+            "providers": {
+              "type": "object",
+              "description": "提供商名到原生提供商配置的映射；字段由 OMP 定义。",
+              "properties": {},
+              "required": [],
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "providers"
+          ],
+          "additionalProperties": true
+        },
+        "config": {
+          "type": "object",
+          "description": "原生 config.yml；由 OMP 校验可用字段。",
+          "properties": {},
+          "required": [],
+          "additionalProperties": true
+        },
+        "status": {
+          "type": "object",
+          "description": "引擎安装及可执行性状态。",
+          "properties": {
+            "installed": {
+              "type": "boolean",
+              "description": "当前引擎是否可执行。"
+            },
+            "version": {
+              "type": "string",
+              "description": "版本号，未安装时为空。"
+            },
+            "source": {
+              "type": "string",
+              "description": "引擎来源。",
+              "enum": [
+                "not-installed",
+                "managed",
+                "external"
+              ]
+            },
+            "path": {
+              "type": "string",
+              "description": "已安装可执行文件的绝对路径。"
+            },
+            "error": {
+              "type": "string",
+              "description": "探测失败的错误消息。"
+            }
+          },
+          "required": [
+            "installed",
+            "version",
+            "source"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "executable",
+        "defaultModel",
+        "models",
+        "config",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "saved": {
+      "type": "object",
+      "description": "持久化成功确认。",
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "仅保存完成后返回 true。",
+          "enum": [
+            true
+          ]
+        }
+      },
+      "required": [
+        "ok"
+      ],
+      "additionalProperties": false
+    },
+    "enginePointer": {
+      "type": "object",
+      "description": "已校验的受管引擎选择记录。",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "完整 OMP 版本号。"
+        },
+        "asset": {
+          "type": "string",
+          "description": "对应系统架构的二进制文件名。"
+        }
+      },
+      "required": [
+        "version",
+        "asset"
+      ],
+      "additionalProperties": false
+    },
+    "sessionPointer": {
+      "type": "object",
+      "description": "原生会话相对位置。",
+      "properties": {
+        "sessionFile": {
+          "type": "string",
+          "description": "相对 runtimeDir 的会话文件路径，禁止绝对路径或越界。"
+        }
+      },
+      "required": [
+        "sessionFile"
+      ],
+      "additionalProperties": false
+    },
+    "newCheckpoint": {
+      "type": "object",
+      "description": "版本 1 的 OMP 会话检查点。",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "description": "当前恢复格式版本。",
+          "enum": [
+            1
+          ]
+        },
+        "data": {
+          "type": "object",
+          "description": "原生会话引用。",
+          "properties": {
+            "sessionFile": {
+              "type": "null",
+              "description": "null 表示新会话；字符串为 runtimeDir 内的相对文件路径。"
+            }
+          },
+          "required": [
+            "sessionFile"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "resumableCheckpoint": {
+      "type": "object",
+      "description": "版本 1 的 OMP 会话检查点。",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "description": "当前恢复格式版本。",
+          "enum": [
+            1
+          ]
+        },
+        "data": {
+          "type": "object",
+          "description": "原生会话引用。",
+          "properties": {
+            "sessionFile": {
+              "type": "string",
+              "description": "null 表示新会话；字符串为 runtimeDir 内的相对文件路径。"
+            }
+          },
+          "required": [
+            "sessionFile"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "rpc": {
+    "get-settings": {
+      "description": "读取当前账号设置，遮蔽密钥并探测引擎。",
+      "input": "empty",
+      "output": "settingsResult"
+    },
+    "save-settings": {
+      "description": "校验路径和原生配置后保存，保留遮蔽值对应的原密钥。",
+      "input": "settingsInput",
+      "output": "saved"
+    }
+  },
+  "storage": {
+    "settings": {
+      "description": "按真实用户/Profile 分区的原生设置。",
+      "model": "settings",
+      "version": 1,
+      "scope": "namespace('accounts', sha256(JSON.stringify([userId, profile]))).settings"
+    },
+    "engine": {
+      "description": "受管引擎安装成功后原子替换的指针。",
+      "model": "enginePointer",
+      "version": 1,
+      "scope": "ctx.paths.dataDir/engine.json"
+    },
+    "session": {
+      "description": "一次宿主会话的原生文件引用。",
+      "model": "sessionPointer",
+      "version": 1,
+      "scope": "session.paths.runtimeDir/native-session.json"
+    }
+  },
+  "tools": {},
+  "commands": {},
+  "actions": {},
+  "events": {},
+  "checkpoints": {
+    "newCheckpoint": {
+      "description": "新会话或可恢复会话的版本 1 检查点。",
+      "model": "newCheckpoint",
+      "version": 1,
+      "scope": "Studio Agent session runtimeDir"
+    },
+    "resumableCheckpoint": {
+      "description": "新会话或可恢复会话的版本 1 检查点。",
+      "model": "resumableCheckpoint",
+      "version": 1,
+      "scope": "Studio Agent session runtimeDir"
+    }
+  }
+}

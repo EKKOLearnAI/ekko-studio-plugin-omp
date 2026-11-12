@@ -1,0 +1,40 @@
+{
+  "name": "@ekko-studio/plugin-omp",
+  "version": "0.1.4",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "ekko-studio plugins dev .",
+    "harness:check": "node scripts/plugin-harness.mjs check",
+    "test": "node --test tests/*.test.mjs",
+    "prepack": "npm run harness:check && npm test && npm run build --if-present && npm run harness:check"
+  },
+  "devDependencies": {
+    "@ekko-studio/plugin-sdk": "file:./sdk"
+  },
+  "license": "BSL-1.1",
+  "description": "OMP Agent runtime plugin for Ekko Studio",
+  "engines": {
+    "node": ">=24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EKKOLearnAI/ekko-studio-plugin-omp.git"
+  },
+  "homepage": "https://omp.sh/",
+  "files": [
+    "*.mjs",
+    "plugin.json",
+    "icon.png",
+    "assets/",
+    "OMP-NOTICE.txt",
+    "LICENSE",
+    "AGENTS.md",
+    "docs/",
+    "sdk/",
+    "scripts/",
+    "contracts/",
+    "plugin.harness.json",
+    "tests/"
+  ]
+}
