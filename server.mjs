@@ -55,7 +55,7 @@ export function apply(ctx) {
   registerRpc(ctx, contract, 'save-mcp', (input, run) => saveServer(ctx, run.identity, input))
   registerRpc(ctx, contract, 'remove-mcp', (input, run) => removeResource(ctx, run.identity, 'mcp', input.name))
   const registration = ctx.extensions.agents.register({
-    id: 'omp', name: 'Oh My Pi', vendor: 'Stencil Labs', agentApiVersion: 2,
+    id: 'omp', name: 'Oh My Pi', vendor: 'Stencil Labs', agentApiVersion: 1,
     description: 'OMP coding Agent with native global models and Studio scoped models.',
     getStatus: async run => { await mkdir(dataDir, { recursive: true, mode: 0o700 }); return engineStatus(dataDir, (await readSettings(ctx, run.identity)).executable, run.signal) },
     management: {

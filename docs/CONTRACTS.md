@@ -1,6 +1,6 @@
 # OMP 插件契约
 
-宿主接口为 plugin API v2 和 Agent API v2。OMP stdio `rpc-ui` 适配最初以引擎
+宿主接口为 plugin API v1 和 Agent API v1。OMP stdio `rpc-ui` 适配最初以引擎
 18.19.0 验证。入口为 `server.mjs` 的 `apply(ctx)`，前端入口为 `client.mjs`。
 退出时释放 Agent 注册；每轮在 finally 关闭 RPC 子进程并删除临时配置。
 
@@ -87,20 +87,9 @@ secret 输入和不支持的 form 自动取消，普通状态经 status 事件�
 - `turns/<runId>/`：models.yml、config.yml、mcp.json、instructions.md 和启用的 skills/，仅本轮存在。
 - `sessions/`：OMP 自己维护的原生会话记录，不解析或自行迁移其内部格式。
 
-0.1.7 增加独立的三页 Agent 设置、Skill/MCP 管理与运行时快照，新增存储键默认空列表，保留旧设置和恢复格式。
+## 当前首版契约
 
-0.1.6 改用官方 Release 跳转查询版本，避免匿名 API 配额耗尽导致安装或更新失败；不改变数据格式。
-
-0.1.5 增加受管引擎删除和自动更新能力，升级不会自动开启更新；已有设置和恢复格式不变。
-删除受管引擎只清理其二进制及指针，账号设置和会话保留。
-
-0.1.4 只迁移源码归属和更换官网标识；ID、命名空间、版本 1 checkpoint 及已有设置保持兼容。
-以后修改上述结构时必须同时更新契约、本文、相关指南及实际边界测试；改变持久化语义需解释
-旧数据读取、默认值和迁移行为。harness 不能替代对文档语义和上游协议的人工审查。
-
-## 0.2.0：SDK v2 迁移
-
-要求 Studio plugin API v2 / Agent API v2。清单改用 permissions，Agent 声明改用 features。
-注册统一为 extensions，前端使用 rpc.call，存储显式使用 state.plugin，清理使用 lifecycle，运行输出使用 output。
-插件 SDK 与四份宿主指南一同更新，SDK 已包含 host.browser.cdp，但 OMP 本身不声明或自动调用 browser.cdp。
-账号 namespace、settings/skills/mcp 键、引擎目录及 schemaVersion=1 的 checkpoint 保持原数据格式，升级不会清空已有设置。
+插件模块首次上线以 plugin API v1 和 Agent API v1 为协议基线；包版本 version 单独表示插件发布版本。
+清单使用 permissions，Agent 功能声明使用 features。注册使用 extensions，前端使用 rpc.call，
+存储使用 state.plugin，清理使用 lifecycle，Agent 输出使用 output。只维护这份最新契约。
+SDK 与模板包含 host.browser.cdp 的权限和调用契约；OMP 自身没有声明或自动使用 browser.cdp。

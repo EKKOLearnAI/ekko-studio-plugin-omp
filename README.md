@@ -6,7 +6,7 @@ Studio scoped 模型、流式输出、工具事件、附件、会话续接和引
 
 ## 开发和调试
 
-需要 Node.js 24+ 和支持插件独立 navigation、agent-settings 页面及 Agent API v2 的 Ekko Studio。仓库可以放在任意目录：
+需要 Node.js 24+ 和支持插件独立 navigation、agent-settings 页面及 Agent API v1 的 Ekko Studio。仓库可以放在任意目录：
 
 ```bash
 git clone https://github.com/EKKOLearnAI/ekko-studio-plugin-omp.git
@@ -44,7 +44,7 @@ Agent 管理支持删除受管引擎和开启自动更新；删除保留设置�
 - [开发规范](docs/DEVELOPMENT.md)、[OMP 数据和运行契约](docs/CONTRACTS.md)
 - [宿主类型](sdk/src/index.ts)、[Agent 类型](sdk/src/agents.ts)
 
-指南和 SDK 随项目保存，管理接口使用 Agent API v2，并包含独立导航与 Agent 设置页面契约。
+指南和 SDK 随项目保存，管理接口使用 Agent API v1，并包含独立导航与 Agent 设置页面契约。
 升级 SDK 时一起更新指南。修改公开字段或持久化结构时，在同一次提交直接编辑
 `contracts/plugin.json` 和相关 Markdown，并修改边界测试；没有文档生成命令。
 
