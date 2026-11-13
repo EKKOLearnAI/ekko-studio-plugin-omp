@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { readFile } from 'node:fs/promises'
+import { readFile, mkdir, writeFile, access } from 'node:fs/promises'
+import { join } from 'node:path'
 import { setup } from '../support.mjs'
 
 let fixture, cleanup
@@ -7,6 +8,46 @@ test.beforeEach(async ({ page }) => {
   cleanup = []
   fixture = await setup({ after: fn => cleanup.push(fn) })
   await page.exposeFunction('ompRpc', (name, input) => fixture.call(name, input ?? null))
+})
+
+test('discovers existing global files, labels legacy private entries, and keeps the themed layout usable on desktop and mobile', async ({ page }, testInfo) => {
+  const folder = join(fixture.nativeDirectory, 'skills', 'existing')
+  await mkdir(folder, { recursive: true })
+  await writeFile(join(folder, 'SKILL.md'), '---\nname: existing\ndescription: 全局已有技能\n---\n\nRead the project.')
+  await writeFile(join(fixture.nativeDirectory, 'mcp.json'), JSON.stringify({ mcpServers: {
+    native: { type: 'http', url: 'https://example.com/native', headers: { Authorization: 'private-native-token' } },
+  } }))
+  await fixture.call('save-skill', { name: 'private', description: '账号私有技能', content: 'Private content.', enabled: true, source: 'profile' })
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await mount(page, 'skills')
+  await expect(page.getByRole('article')).toHaveCount(2)
+  await expect(page.getByRole('article').filter({ hasText: 'existing' })).toContainText('本机全局')
+  await expect(page.getByRole('article').filter({ hasText: 'private' })).toContainText('账号私有')
+  await expect(page.getByLabel('配置位置')).toHaveText(`${fixture.nativeDirectory}/skills/`)
+  await page.screenshot({ path: testInfo.outputPath('native-skills-desktop.png') })
+  await page.getByRole('button', { name: '编辑 existing', exact: true }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page.getByRole('textbox', { name: '描述', exact: true }).fill('从页面编辑原生技能')
+  await page.getByRole('button', { name: '保存配置', exact: true }).click()
+  await expect(page.getByRole('dialog')).toBeHidden()
+  expect(await readFile(join(folder, 'SKILL.md'), 'utf8')).toContain('从页面编辑原生技能')
+  await mount(page, 'mcp')
+  await expect(page.getByRole('article')).toContainText('native')
+  await page.getByRole('button', { name: '编辑 native', exact: true }).click()
+  expect(await page.getByRole('textbox', { name: '服务配置（JSON）', exact: true }).inputValue()).not.toContain('private-native-token')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.evaluate(() => {
+    for (const [key, value] of Object.entries({ '--text-primary': '#eee', '--text-secondary': '#bbb', '--border-color': '#555', '--bg-secondary': '#30333b', '--bg-card': '#20232b', '--accent-primary': '#8998ff' })) document.documentElement.style.setProperty(key, value)
+    document.body.style.background = '#20232b'
+  })
+  await expect.poll(() => page.locator('dialog button.primary').evaluate(button => getComputedStyle(button).backgroundColor)).toBe('rgb(137, 152, 255)')
+  await expect.poll(() => page.locator('dialog button.primary').evaluate(button => getComputedStyle(button).color)).toBe('rgb(0, 0, 0)')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('native-mcp-dark-mobile.png') })
+  await page.getByRole('button', { name: '保存配置', exact: true }).click()
+  await expect(page.getByRole('dialog')).toBeHidden()
+  expect(JSON.parse(await readFile(join(fixture.nativeDirectory, 'mcp.json'), 'utf8')).mcpServers.native.headers.Authorization).toBe('private-native-token')
+  await access(join(folder, 'SKILL.md'))
 })
 test.afterEach(async () => { for (const close of cleanup.reverse()) await close() })
 

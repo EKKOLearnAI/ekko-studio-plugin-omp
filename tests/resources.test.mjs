@@ -5,13 +5,13 @@ import { join } from 'node:path'
 import { setup } from './support.mjs'
 import { readResources, runtimeResources } from '../resources.mjs'
 
-const skill = { name: 'review-code', description: 'Review a code change', content: '# Review\nRead the diff first.', enabled: true }
-const server = { name: 'docs', enabled: true, config: { type: 'http', url: 'https://example.com/mcp', headers: { 'X-Credential': 'private-key' } } }
+const skill = { name: 'review-code', description: 'Review a code change', content: '# Review\nRead the diff first.', enabled: true, source: 'profile' }
+const server = { name: 'docs', enabled: true, source: 'profile', config: { type: 'http', url: 'https://example.com/mcp', headers: { 'X-Credential': 'private-key' } } }
 
 test('skill and MCP CRUD stay isolated by user/Profile and preserve the old configuration', async t => {
   const f = await setup(t)
-  assert.deepEqual(await f.call('list-skills', null), { skills: [] })
-  assert.deepEqual(await f.call('list-mcp', null), { servers: [] })
+  assert.deepEqual((await f.call('list-skills', null)).skills, [])
+  assert.deepEqual((await f.call('list-mcp', null)).servers, [])
   await f.call('save-skill', skill); await f.call('save-mcp', server)
   assert.deepEqual((await f.call('list-skills', null)).skills, [skill])
   const visible = (await f.call('list-mcp', null)).servers[0]
@@ -19,16 +19,16 @@ test('skill and MCP CRUD stay isolated by user/Profile and preserve the old conf
   await f.call('save-mcp', { ...visible, enabled: false })
   assert.equal((await readResources(f.ctx, f.identity, 'mcp'))[0].config.headers['X-Credential'], 'private-key')
   for (const who of [{ userId: 2, profile: 'work' }, { userId: 1, profile: 'other' }]) {
-    assert.deepEqual(await f.call('list-skills', null, who), { skills: [] })
-    assert.deepEqual(await f.call('list-mcp', null, who), { servers: [] })
-    await f.call('remove-skill', { name: skill.name }, who)
+    assert.deepEqual((await f.call('list-skills', null, who)).skills, [])
+    assert.deepEqual((await f.call('list-mcp', null, who)).servers, [])
+    await f.call('remove-skill', { name: skill.name, source: 'profile' }, who)
     await assert.rejects(f.call('save-mcp', visible, who), /Enter a value/)
   }
   assert.equal((await f.call('list-skills', null)).skills.length, 1)
   assert.deepEqual((await f.call('get-settings', null)).config, {})
-  await f.call('remove-skill', { name: skill.name }); await f.call('remove-mcp', { name: server.name })
-  assert.deepEqual(await f.call('list-skills', null), { skills: [] })
-  assert.deepEqual(await f.call('list-mcp', null), { servers: [] })
+  await f.call('remove-skill', { name: skill.name, source: 'profile' }); await f.call('remove-mcp', { name: server.name, source: 'profile' })
+  assert.deepEqual((await f.call('list-skills', null)).skills, [])
+  assert.deepEqual((await f.call('list-mcp', null)).servers, [])
 })
 
 test('rejects invalid resource edits without overwriting good data and serializes concurrent writes', async t => {
@@ -52,7 +52,7 @@ test('runtime snapshots load enabled skills and MCP, with injected Studio server
   await f.call('save-skill', skill)
   await f.call('save-skill', { ...skill, name: 'disabled', enabled: false })
   await f.call('save-mcp', server)
-  await f.call('save-mcp', { name: 'local', enabled: true, config: { command: 'npx', args: [], env: { CUSTOM_CREDENTIAL: 'local-key' } } })
+  await f.call('save-mcp', { name: 'local', enabled: true, source: 'profile', config: { command: 'npx', args: [], env: { CUSTOM_CREDENTIAL: 'local-key' } } })
   await f.call('save-mcp', { ...server, name: 'off', enabled: false })
   const visible = (await f.call('list-mcp', null)).servers.find(item => item.name === 'local')
   assert.equal(visible.config.env.CUSTOM_CREDENTIAL, '••••••••')

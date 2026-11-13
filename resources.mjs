@@ -1,12 +1,13 @@
-import { mkdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdir, writeFile, cp, realpath } from 'node:fs/promises'
+import { join, dirname } from 'node:path'
 import contract from './contracts/plugin.json' with { type: 'json' }
 import { validateModel } from './sdk/harness/contracts.mjs'
 import { settingsStore, accountKey, maskSecrets, mergeSecrets } from './settings.mjs'
+import { nativeDirectory, nativeSkills, nativeServers, writeNativeSkill, writeNativeServer } from './native.mjs'
 
 const locks = new Map()
 const resourceName = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-const serverName = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$/
+const serverName = /^[a-zA-Z0-9][a-zA-Z0-9_.: -]{0,99}$/
 const reserved = new Set(['__proto__', 'prototype', 'constructor'])
 const MASK = '••••••••'
 
@@ -14,6 +15,17 @@ export async function readResources(ctx, identity, key) {
   const value = await settingsStore(ctx, identity).get(key) || []
   return validateModel(contract, key === 'skills' ? 'skillList' : 'mcpList', value)
 }
+
+export async function listResources(ctx, identity, key) {
+  const directory = nativeDirectory()
+  const native = key === 'skills' ? await nativeSkills(directory) : await nativeServers(directory)
+  const field = key === 'skills' ? 'skills' : 'servers'
+  const saved = await readResources(ctx, identity, key)
+  return { [field]: [...native[field], ...saved.map(item => ({ ...item, source: 'profile' }))], directory, warnings: native.warnings }
+}
+
+const storedSkill = ({ name, description, content, enabled }) => ({ name, description, content, enabled })
+const storedServer = ({ name, config, enabled }) => ({ name, config, enabled })
 
 async function update(ctx, identity, key, change) {
   const lock = `${ctx.paths.dataDir}/${accountKey(identity)}/${key}`
@@ -33,12 +45,15 @@ export function saveSkill(ctx, identity, input) {
   validateModel(contract, 'skill', input)
   if (!resourceName.test(input.name) || input.name.length > 64 || reserved.has(input.name)) throw new Error('Use a lowercase skill name with letters, numbers and single hyphens')
   if (!input.description.trim() || !input.content.trim()) throw new Error('Skill description and Markdown content are required')
+  if (input.source !== 'profile') return writeNativeSkill(input)
   return update(ctx, identity, 'skills', entries => [...entries.filter(item => item.name !== input.name), {
-    ...input, description: input.description.trim(),
+    ...storedSkill(input), description: input.description.trim(),
   }])
 }
 
-export const removeResource = (ctx, identity, key, name) => update(ctx, identity, key, entries => entries.filter(item => item.name !== name))
+export const removeResource = (ctx, identity, key, input) => input.source === 'profile'
+  ? update(ctx, identity, key, entries => entries.filter(item => item.name !== input.name))
+  : key === 'skills' ? writeNativeSkill(input, true) : writeNativeServer(input, mergeServerSecrets, true)
 
 export function visibleServers(entries) {
   return entries.map(item => ({ ...item, config: {
@@ -71,21 +86,31 @@ export function saveServer(ctx, identity, input) {
   validateModel(contract, 'mcpServer', input)
   if (!serverName.test(input.name) || reserved.has(input.name)) throw new Error('Use an MCP name with letters, numbers, underscores, dots or hyphens')
   validateServer(input.config)
+  if (input.source !== 'profile') return writeNativeServer(input, mergeServerSecrets)
   return update(ctx, identity, 'mcp', entries => {
     const old = entries.find(item => item.name === input.name)?.config
-    const config = structuredClone(input.config)
-    for (const key of ['env', 'headers']) for (const name of Object.keys(config[key] || {})) {
-      if (config[key][name] !== MASK) continue
-      if (typeof old?.[key]?.[name] !== 'string') throw new Error(`Enter a value for ${key}.${name}`)
-      config[key][name] = old[key][name]
-    }
-    return [...entries.filter(item => item.name !== input.name), { ...input, config: mergeSecrets(config, old) }]
+    return [...entries.filter(item => item.name !== input.name), { ...storedServer(input), config: mergeServerSecrets(input.config, old) }]
   })
+}
+
+function mergeServerSecrets(value, old) {
+  const config = structuredClone(value)
+  for (const key of ['env', 'headers']) for (const name of Object.keys(config[key] || {})) {
+    if (config[key][name] !== MASK) continue
+    if (typeof old?.[key]?.[name] !== 'string') throw new Error(`Enter a value for ${key}.${name}`)
+    config[key][name] = old[key][name]
+  }
+  return mergeSecrets(config, old)
 }
 
 export async function runtimeResources(ctx, identity, directory, managedServers = {}, signal) {
   signal?.throwIfAborted()
-  const [skills, servers] = await Promise.all([readResources(ctx, identity, 'skills'), readResources(ctx, identity, 'mcp')])
+  const [skillList, serverList] = await Promise.all([listResources(ctx, identity, 'skills'), listResources(ctx, identity, 'mcp')])
+  // Legacy account entries remain private and win same-name global entries in this account's runs.
+  const selectedSkills = new Map()
+  for (const item of skillList.skills) if (item.source === 'profile' || !selectedSkills.has(item.name)) selectedSkills.set(item.name, item)
+  const skills = [...selectedSkills.values()]
+  const servers = [...new Map(serverList.servers.map(item => [item.name, item])).values()]
   const skillDirectory = join(directory, 'skills')
   await mkdir(skillDirectory, { recursive: true, mode: 0o700 })
   for (const skill of skills.filter(item => item.enabled)) {
@@ -93,8 +118,11 @@ export async function runtimeResources(ctx, identity, directory, managedServers 
     // Validate persisted names before using them as path segments.
     if (!resourceName.test(skill.name) || reserved.has(skill.name)) throw new Error('Invalid saved skill name')
     const target = join(skillDirectory, skill.name)
-    await mkdir(target, { recursive: true, mode: 0o700 })
-    await writeFile(join(target, 'SKILL.md'), `---\nname: ${JSON.stringify(skill.name)}\ndescription: ${JSON.stringify(skill.description)}\n---\n\n${skill.content}\n`, { mode: 0o600 })
+    if (skill.source === 'global') await cp(await realpath(dirname(skill.path)), target, { recursive: true, dereference: false, verbatimSymlinks: true })
+    else {
+      await mkdir(target, { recursive: true, mode: 0o700 })
+      await writeFile(join(target, 'SKILL.md'), `---\nname: ${JSON.stringify(skill.name)}\ndescription: ${JSON.stringify(skill.description)}\n---\n\n${skill.content}\n`, { mode: 0o600 })
+    }
   }
   return { skillDirectory, mcpServers: { ...Object.fromEntries(servers.filter(item => item.enabled).map(item => [item.name, item.config])), ...managedServers } }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "OMP 设置、Skill/MCP 管理 RPC、账号隔离存储和本地恢复格式；宿主管理接口见 sdk/src/agents.ts。",
+  "description": "OMP 设置、原生全局 Skill/MCP 文件管理、旧账号隔离资源和本地恢复格式。",
   "models": {
     "empty": {
       "type": "null",
@@ -301,7 +301,7 @@
     },
     "skillList": {
       "type": "array",
-      "description": "当前真实账号/Profile 保存的 Skill，包含正文，最多 200 项。",
+      "description": "原生全局 Skill 与当前账号/Profile 的旧私有 Skill；来源不同的同名条目保留。",
       "items": {
         "type": "object",
         "description": "插件管理的一个 Markdown Skill；name 同时用作唯一标识及目录名。",
@@ -327,6 +327,28 @@
           "enabled": {
             "type": "boolean",
             "description": "是否在下一轮 OMP 运行中加载。"
+          },
+          "source": {
+            "type": "string",
+            "description": "global 为本机原生 OMP 文件；profile 为当前账号/Profile 的旧私有条目。新建默认 global。",
+            "enum": [
+              "global",
+              "profile"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "全局条目的目录名或原生 MCP 文件名，由列表返回；服务端只接受安全路径段。",
+            "maxLength": 256
+          },
+          "path": {
+            "type": "string",
+            "description": "全局条目的实际绝对路径，仅作展示，不作为写入目标。",
+            "maxLength": 4096
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "链接到外部来源的 Skill 只读，保留原管理器所有权。"
           }
         },
         "required": [
@@ -341,7 +363,7 @@
     },
     "mcpList": {
       "type": "array",
-      "description": "当前真实账号/Profile 保存的 MCP 服务，最多 200 项；前端 env/headers 及凭证字段遮蔽。",
+      "description": "原生全局 MCP 与当前账号/Profile 的旧私有 MCP；凭证仅在服务端保留。",
       "items": {
         "type": "object",
         "description": "插件管理的 MCP 服务；enabled 单独控制开关。",
@@ -350,7 +372,7 @@
             "type": "string",
             "description": "服务唯一名称，允许字母、数字、下划线、点和连字符。",
             "minLength": 1,
-            "maxLength": 64
+            "maxLength": 100
           },
           "enabled": {
             "type": "boolean",
@@ -362,6 +384,28 @@
             "properties": {},
             "required": [],
             "additionalProperties": true
+          },
+          "source": {
+            "type": "string",
+            "description": "global 为本机原生 OMP 文件；profile 为当前账号/Profile 的旧私有条目。新建默认 global。",
+            "enum": [
+              "global",
+              "profile"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "全局条目的目录名或原生 MCP 文件名，由列表返回；服务端只接受安全路径段。",
+            "maxLength": 256
+          },
+          "path": {
+            "type": "string",
+            "description": "全局条目的实际绝对路径，仅作展示，不作为写入目标。",
+            "maxLength": 4096
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "链接到外部来源的 Skill 只读，保留原管理器所有权。"
           }
         },
         "required": [
@@ -398,6 +442,28 @@
         "enabled": {
           "type": "boolean",
           "description": "是否在下一轮 OMP 运行中加载。"
+        },
+        "source": {
+          "type": "string",
+          "description": "global 为本机原生 OMP 文件；profile 为当前账号/Profile 的旧私有条目。新建默认 global。",
+          "enum": [
+            "global",
+            "profile"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "description": "全局条目的目录名或原生 MCP 文件名，由列表返回；服务端只接受安全路径段。",
+          "maxLength": 256
+        },
+        "path": {
+          "type": "string",
+          "description": "全局条目的实际绝对路径，仅作展示，不作为写入目标。",
+          "maxLength": 4096
+        },
+        "readOnly": {
+          "type": "boolean",
+          "description": "链接到外部来源的 Skill 只读，保留原管理器所有权。"
         }
       },
       "required": [
@@ -416,7 +482,7 @@
           "type": "string",
           "description": "服务唯一名称，允许字母、数字、下划线、点和连字符。",
           "minLength": 1,
-          "maxLength": 64
+          "maxLength": 100
         },
         "enabled": {
           "type": "boolean",
@@ -428,6 +494,28 @@
           "properties": {},
           "required": [],
           "additionalProperties": true
+        },
+        "source": {
+          "type": "string",
+          "description": "global 为本机原生 OMP 文件；profile 为当前账号/Profile 的旧私有条目。新建默认 global。",
+          "enum": [
+            "global",
+            "profile"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "description": "全局条目的目录名或原生 MCP 文件名，由列表返回；服务端只接受安全路径段。",
+          "maxLength": 256
+        },
+        "path": {
+          "type": "string",
+          "description": "全局条目的实际绝对路径，仅作展示，不作为写入目标。",
+          "maxLength": 4096
+        },
+        "readOnly": {
+          "type": "boolean",
+          "description": "链接到外部来源的 Skill 只读，保留原管理器所有权。"
         }
       },
       "required": [
@@ -445,7 +533,29 @@
           "type": "string",
           "description": "Skill 或 MCP 服务的现有唯一名称。",
           "minLength": 1,
-          "maxLength": 64
+          "maxLength": 256
+        },
+        "source": {
+          "type": "string",
+          "description": "global 为本机原生 OMP 文件；profile 为当前账号/Profile 的旧私有条目。新建默认 global。",
+          "enum": [
+            "global",
+            "profile"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "description": "全局条目的目录名或原生 MCP 文件名，由列表返回；服务端只接受安全路径段。",
+          "maxLength": 256
+        },
+        "path": {
+          "type": "string",
+          "description": "全局条目的实际绝对路径，仅作展示，不作为写入目标。",
+          "maxLength": 4096
+        },
+        "readOnly": {
+          "type": "boolean",
+          "description": "链接到外部来源的 Skill 只读，保留原管理器所有权。"
         }
       },
       "required": [
@@ -455,11 +565,11 @@
     },
     "skillsResult": {
       "type": "object",
-      "description": "本账号/Profile 的 Skill 管理列表。",
+      "description": "原生全局及当前账号私有 Skill、原生目录及读取警告。",
       "properties": {
         "skills": {
           "type": "array",
-          "description": "当前真实账号/Profile 保存的 Skill，包含正文，最多 200 项。",
+          "description": "原生全局 Skill 与当前账号/Profile 的旧私有 Skill；来源不同的同名条目保留。",
           "items": {
             "type": "object",
             "description": "插件管理的一个 Markdown Skill；name 同时用作唯一标识及目录名。",
@@ -485,6 +595,28 @@
               "enabled": {
                 "type": "boolean",
                 "description": "是否在下一轮 OMP 运行中加载。"
+              },
+              "source": {
+                "type": "string",
+                "description": "global 为本机原生 OMP 文件；profile 为当前账号/Profile 的旧私有条目。新建默认 global。",
+                "enum": [
+                  "global",
+                  "profile"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "description": "全局条目的目录名或原生 MCP 文件名，由列表返回；服务端只接受安全路径段。",
+                "maxLength": 256
+              },
+              "path": {
+                "type": "string",
+                "description": "全局条目的实际绝对路径，仅作展示，不作为写入目标。",
+                "maxLength": 4096
+              },
+              "readOnly": {
+                "type": "boolean",
+                "description": "链接到外部来源的 Skill 只读，保留原管理器所有权。"
               }
             },
             "required": [
@@ -494,8 +626,19 @@
               "enabled"
             ],
             "additionalProperties": false
-          },
-          "maxItems": 200
+          }
+        },
+        "directory": {
+          "type": "string",
+          "description": "当前原生 OMP 全局配置目录的绝对路径。"
+        },
+        "warnings": {
+          "type": "array",
+          "description": "跳过的非法文件或条目；不包含凭证或文件内容。",
+          "items": {
+            "type": "string",
+            "description": "包含来源路径的可读错误。"
+          }
         }
       },
       "required": [
@@ -505,11 +648,11 @@
     },
     "mcpResult": {
       "type": "object",
-      "description": "本账号/Profile 的 MCP 管理列表；不返回 Studio 本轮注入的受管服务。",
+      "description": "原生全局及当前账号私有 MCP、原生目录及读取警告；不含 Studio 临时注入服务。",
       "properties": {
         "servers": {
           "type": "array",
-          "description": "当前真实账号/Profile 保存的 MCP 服务，最多 200 项；前端 env/headers 及凭证字段遮蔽。",
+          "description": "原生全局 MCP 与当前账号/Profile 的旧私有 MCP；凭证仅在服务端保留。",
           "items": {
             "type": "object",
             "description": "插件管理的 MCP 服务；enabled 单独控制开关。",
@@ -518,7 +661,7 @@
                 "type": "string",
                 "description": "服务唯一名称，允许字母、数字、下划线、点和连字符。",
                 "minLength": 1,
-                "maxLength": 64
+                "maxLength": 100
               },
               "enabled": {
                 "type": "boolean",
@@ -530,6 +673,28 @@
                 "properties": {},
                 "required": [],
                 "additionalProperties": true
+              },
+              "source": {
+                "type": "string",
+                "description": "global 为本机原生 OMP 文件；profile 为当前账号/Profile 的旧私有条目。新建默认 global。",
+                "enum": [
+                  "global",
+                  "profile"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "description": "全局条目的目录名或原生 MCP 文件名，由列表返回；服务端只接受安全路径段。",
+                "maxLength": 256
+              },
+              "path": {
+                "type": "string",
+                "description": "全局条目的实际绝对路径，仅作展示，不作为写入目标。",
+                "maxLength": 4096
+              },
+              "readOnly": {
+                "type": "boolean",
+                "description": "链接到外部来源的 Skill 只读，保留原管理器所有权。"
               }
             },
             "required": [
@@ -538,14 +703,32 @@
               "config"
             ],
             "additionalProperties": false
-          },
-          "maxItems": 200
+          }
+        },
+        "directory": {
+          "type": "string",
+          "description": "当前原生 OMP 全局配置目录的绝对路径。"
+        },
+        "warnings": {
+          "type": "array",
+          "description": "跳过的非法文件或条目；不包含凭证或文件内容。",
+          "items": {
+            "type": "string",
+            "description": "包含来源路径的可读错误。"
+          }
         }
       },
       "required": [
         "servers"
       ],
       "additionalProperties": false
+    },
+    "nativeObject": {
+      "type": "object",
+      "description": "原生 YAML frontmatter/config 或 MCP JSON 文档；原生未知字段保留，拒绝非 JSON 值与原型污染键。",
+      "properties": {},
+      "required": [],
+      "additionalProperties": true
     }
   },
   "rpc": {
@@ -560,32 +743,32 @@
       "output": "saved"
     },
     "list-skills": {
-      "description": "读取当前真实账号/Profile 的 Skill 列表。",
+      "description": "发现本机 OMP 原生 Skill 文件，并保留当前账号/Profile 的旧私有条目。",
       "input": "empty",
       "output": "skillsResult"
     },
     "save-skill": {
-      "description": "创建或更新同名 Skill；修改在下一轮生效。",
+      "description": "创建或更新同名 Skill；修改在下一轮生效。 source 默认 global，直接修改原生文件；profile 只修改当前账号旧存储。",
       "input": "skill",
       "output": "saved"
     },
     "remove-skill": {
-      "description": "移除本账号下的同名 Skill；已运行的轮次不受影响。",
+      "description": "移除本账号下的同名 Skill；已运行的轮次不受影响。 source 默认 global，直接修改原生文件；profile 只修改当前账号旧存储。",
       "input": "resourceName",
       "output": "saved"
     },
     "list-mcp": {
-      "description": "读取当前真实账号/Profile 的 MCP 列表，遮蔽 env/headers 及凭证。",
+      "description": "发现本机 OMP 原生 mcp.json/.mcp.json 与当前账号私有条目，遮蔽凭证。",
       "input": "empty",
       "output": "mcpResult"
     },
     "save-mcp": {
-      "description": "创建或更新同名 MCP 配置；遮蔽值恢复为该服务原值，修改在下一轮生效。",
+      "description": "创建或更新同名 MCP 配置；遮蔽值恢复为该服务原值，修改在下一轮生效。 source 默认 global，直接修改原生文件；profile 只修改当前账号旧存储。",
       "input": "mcpServer",
       "output": "saved"
     },
     "remove-mcp": {
-      "description": "移除本账号下的同名 MCP 服务；不操作 Studio 受管服务。",
+      "description": "移除本账号下的同名 MCP 服务；不操作 Studio 受管服务。 source 默认 global，直接修改原生文件；profile 只修改当前账号旧存储。",
       "input": "resourceName",
       "output": "saved"
     }
@@ -620,6 +803,12 @@
       "model": "mcpList",
       "version": 1,
       "scope": "namespace('accounts', sha256(JSON.stringify([userId, profile]))).mcp"
+    },
+    "nativeResources": {
+      "description": "原生 OMP 全局文件；Skill frontmatter 与辅助文件保留，MCP 未知字段保留。旧账号资源保持原位置和版本，不自动写入共享目录。",
+      "model": "nativeObject",
+      "version": 1,
+      "scope": "nativeDirectory()/skills/*/SKILL.md, config.yml|config.yaml, mcp.json|.mcp.json"
     }
   },
   "tools": {},

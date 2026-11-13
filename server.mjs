@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { childEnvironment, engineStatus, latestVersion, selectedExecutable, installEngine, removeEngine, binaryAsset } from './engine.mjs'
 import { OmpRpc } from './rpc.mjs'
 import { readSettings, saveSettings, maskSecrets, accountKey } from './settings.mjs'
-import { readResources, saveSkill, saveServer, removeResource, visibleServers, runtimeResources } from './resources.mjs'
+import { listResources, saveSkill, saveServer, removeResource, visibleServers, runtimeResources } from './resources.mjs'
 import contract from './contracts/plugin.json' with { type: 'json' }
 import { registerRpc } from './sdk/harness/contracts.mjs'
 
@@ -48,12 +48,12 @@ export function apply(ctx) {
   registerRpc(ctx, contract, 'get-settings', async (_input, run) => ({ ...maskSecrets(await readSettings(ctx, run.identity)),
     status: await engineStatus(dataDir, (await readSettings(ctx, run.identity)).executable, run.signal) }))
   registerRpc(ctx, contract, 'save-settings', (input, run) => saveSettings(ctx, run.identity, input))
-  registerRpc(ctx, contract, 'list-skills', async (_input, run) => ({ skills: await readResources(ctx, run.identity, 'skills') }))
+  registerRpc(ctx, contract, 'list-skills', (_input, run) => listResources(ctx, run.identity, 'skills'))
   registerRpc(ctx, contract, 'save-skill', (input, run) => saveSkill(ctx, run.identity, input))
-  registerRpc(ctx, contract, 'remove-skill', (input, run) => removeResource(ctx, run.identity, 'skills', input.name))
-  registerRpc(ctx, contract, 'list-mcp', async (_input, run) => ({ servers: visibleServers(await readResources(ctx, run.identity, 'mcp')) }))
+  registerRpc(ctx, contract, 'remove-skill', (input, run) => removeResource(ctx, run.identity, 'skills', input))
+  registerRpc(ctx, contract, 'list-mcp', async (_input, run) => { const result = await listResources(ctx, run.identity, 'mcp'); return { ...result, servers: visibleServers(result.servers) } })
   registerRpc(ctx, contract, 'save-mcp', (input, run) => saveServer(ctx, run.identity, input))
-  registerRpc(ctx, contract, 'remove-mcp', (input, run) => removeResource(ctx, run.identity, 'mcp', input.name))
+  registerRpc(ctx, contract, 'remove-mcp', (input, run) => removeResource(ctx, run.identity, 'mcp', input))
   const registration = ctx.extensions.agents.register({
     id: 'omp', name: 'Oh My Pi', vendor: 'Stencil Labs', agentApiVersion: 1,
     description: 'OMP coding Agent with native global models and Studio scoped models.',
