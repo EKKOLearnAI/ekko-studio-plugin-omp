@@ -1,6 +1,6 @@
 # OMP 插件契约
 
-宿主接口为 plugin API v1 和 Agent API v1。OMP stdio `rpc-ui` 适配最初以引擎
+宿主接口为 plugin API v2 和 Agent API v2。OMP stdio `rpc-ui` 适配最初以引擎
 18.19.0 验证。入口为 `server.mjs` 的 `apply(ctx)`，前端入口为 `client.mjs`。
 退出时释放 Agent 注册；每轮在 finally 关闭 RPC 子进程并删除临时配置。
 
@@ -19,7 +19,7 @@
 - `config`：OMP 原生 config.yml 的 JSON 等价对象，字段由引擎版本定义。
 - 整个保存请求 JSON 不超过 500000 字节。字段规则、默认值及嵌套开放对象见 `contracts/plugin.json`。
 
-设置保存在 `ctx.storage.namespace('accounts', sha256(JSON.stringify([userId, profile])))`
+设置保存在 `ctx.state.plugin.namespace('accounts', sha256(JSON.stringify([userId, profile])))`
 下的 `settings`。真实身份来自 RPC `run.identity`。同一插件的不同账号/Profile 不共享配置。
 响应中以 apiKey/token/secret/password/authorization/cookie 结尾的字段遮蔽为 `••••••••`。
 再次保存遮蔽值时恢复原密钥；数组内模型按 id 匹配。禁止原型污染字段。
@@ -97,3 +97,10 @@ secret 输入和不支持的 form 自动取消，普通状态经 status 事件�
 0.1.4 只迁移源码归属和更换官网标识；ID、命名空间、版本 1 checkpoint 及已有设置保持兼容。
 以后修改上述结构时必须同时更新契约、本文、相关指南及实际边界测试；改变持久化语义需解释
 旧数据读取、默认值和迁移行为。harness 不能替代对文档语义和上游协议的人工审查。
+
+## 0.2.0：SDK v2 迁移
+
+要求 Studio plugin API v2 / Agent API v2。清单改用 permissions，Agent 声明改用 features。
+注册统一为 extensions，前端使用 rpc.call，存储显式使用 state.plugin，清理使用 lifecycle，运行输出使用 output。
+插件 SDK 与四份宿主指南一同更新，SDK 已包含 host.browser.cdp，但 OMP 本身不声明或自动调用 browser.cdp。
+账号 namespace、settings/skills/mcp 键、引擎目录及 schemaVersion=1 的 checkpoint 保持原数据格式，升级不会清空已有设置。

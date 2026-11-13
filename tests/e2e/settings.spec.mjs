@@ -17,8 +17,8 @@ async function mount(page, view) {
     const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
     window.confirmResult = true
     const module = await import(url)
-    await module.mount(document.querySelector('#root'), { view, locale: 'zh', onDispose() {},
-      rpc: (name, input) => window.ompRpc(name, input), ui: { confirm: async () => window.confirmResult, notify() {}, navigate() {} } })
+    await module.mount(document.querySelector('#root'), { view, locale: 'zh', lifecycle: { add() {} },
+      rpc: { call: (name, input) => window.ompRpc(name, input) }, ui: { confirm: async () => window.confirmResult, notify() {}, navigate() {} } })
     URL.revokeObjectURL(url)
   }, { source, view })
 }

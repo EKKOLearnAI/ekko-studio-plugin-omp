@@ -7,7 +7,7 @@ const MASK = '••••••••'
 const secret = /(?:api.?key|token|secret|password|authorization|cookie)$/i
 const plain = value => value && typeof value === 'object' && !Array.isArray(value)
 export const accountKey = identity => createHash('sha256').update(JSON.stringify([identity.userId, identity.profile])).digest('hex')
-export const settingsStore = (ctx, identity) => ctx.storage.namespace('accounts', accountKey(identity))
+export const settingsStore = (ctx, identity) => ctx.state.plugin.namespace('accounts', accountKey(identity))
 export async function readSettings(ctx, identity) {
   return validateModel(contract, 'settings', await settingsStore(ctx, identity).get('settings') || { executable: '', defaultModel: '', models: { providers: {} }, config: {} })
 }

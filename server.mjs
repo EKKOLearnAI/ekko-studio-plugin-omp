@@ -54,8 +54,8 @@ export function apply(ctx) {
   registerRpc(ctx, contract, 'list-mcp', async (_input, run) => ({ servers: visibleServers(await readResources(ctx, run.identity, 'mcp')) }))
   registerRpc(ctx, contract, 'save-mcp', (input, run) => saveServer(ctx, run.identity, input))
   registerRpc(ctx, contract, 'remove-mcp', (input, run) => removeResource(ctx, run.identity, 'mcp', input.name))
-  const registration = ctx.agents.register({
-    id: 'omp', name: 'Oh My Pi', vendor: 'Stencil Labs', agentApiVersion: 1,
+  const registration = ctx.extensions.agents.register({
+    id: 'omp', name: 'Oh My Pi', vendor: 'Stencil Labs', agentApiVersion: 2,
     description: 'OMP coding Agent with native global models and Studio scoped models.',
     getStatus: async run => { await mkdir(dataDir, { recursive: true, mode: 0o700 }); return engineStatus(dataDir, (await readSettings(ctx, run.identity)).executable, run.signal) },
     management: {
@@ -80,7 +80,7 @@ export function apply(ctx) {
       },
     },
     modes: { global: { listModels: run => catalog(ctx, run.identity, run.signal) }, scoped: { protocols: Object.keys(api) } },
-    capabilities: { surfaces: ['chat', 'group-chat', 'workflow', 'api'], streaming: true, resume: true },
+    features: { surfaces: ['chat', 'group-chat', 'workflow', 'api'], streaming: true, resume: true },
     runtime: {
       async createSession(session) {
         let nativeFile = session.resumeState?.schemaVersion === 1 ? session.resumeState.data?.sessionFile : null
@@ -128,20 +128,20 @@ export function apply(ctx) {
               const events = async (frame, transport) => {
                 if (frame.type === 'message_update') {
                   const event = frame.assistantMessageEvent
-                  if (event?.type === 'text_delta') await run.events.emit({ type: 'text.delta', text: event.delta })
-                  else if (event?.type === 'thinking_delta') await run.events.emit({ type: 'reasoning.summary.delta', text: event.delta })
+                  if (event?.type === 'text_delta') await run.output.emit({ type: 'text.delta', text: event.delta })
+                  else if (event?.type === 'thinking_delta') await run.output.emit({ type: 'reasoning.summary.delta', text: event.delta })
                 } else if (frame.type === 'message_end' && frame.message?.role === 'assistant') {
                   const message = frame.message
                   if (message.stopReason === 'error' || message.stopReason === 'aborted') throw new Error(message.errorMessage || `OMP turn ${message.stopReason}`)
                   finalText = partsText(message.content || []); stopReason = message.stopReason === 'length' ? 'length' : 'stop'
                   assistant.set(frame.messageId || randomUUID(), message)
-                } else if (frame.type === 'tool_execution_start') await run.events.emit({ type: 'tool.started', callId: frame.toolCallId, name: frame.toolName, input: frame.args || {} })
+                } else if (frame.type === 'tool_execution_start') await run.output.emit({ type: 'tool.started', callId: frame.toolCallId, name: frame.toolName, input: frame.args || {} })
                 else if (frame.type === 'tool_execution_end') {
                   const encoded = JSON.stringify(frame.result ?? null)
-                  await run.events.emit(frame.isError ? { type: 'tool.failed', callId: frame.toolCallId, error: encoded.slice(0, 100000) }
+                  await run.output.emit(frame.isError ? { type: 'tool.failed', callId: frame.toolCallId, error: encoded.slice(0, 100000) }
                     : { type: 'tool.completed', callId: frame.toolCallId, result: encoded.length > 100000 ? { truncated: true, text: encoded.slice(0, 100000) } : frame.result ?? null })
                 }
-                else if (frame.type.endsWith?.('compaction_start')) await run.events.emit({ type: 'status', phase: 'compressing' })
+                else if (frame.type.endsWith?.('compaction_start')) await run.output.emit({ type: 'status', phase: 'compressing' })
                 else if (frame.type === 'extension_ui_request') {
                   if (frame.method === 'confirm') {
                     const result = await run.interactions.approve({ operationId: frame.id, title: frame.title || 'OMP', details: frame.message || '' })
@@ -150,13 +150,13 @@ export function apply(ctx) {
                     if (frame.secret) { transport.send({ type: 'extension_ui_response', id: frame.id, cancelled: true }); return }
                     const result = await run.interactions.clarify({ question: frame.title || frame.message || 'OMP', ...(frame.options ? { choices: frame.options } : {}) })
                     transport.send({ type: 'extension_ui_response', id: frame.id, ...(result.outcome === 'answered' ? { value: result.text } : { cancelled: true }) })
-                  } else if (['notify', 'setStatus'].includes(frame.method)) await run.events.emit({ type: 'status', phase: 'working', message: frame.message || frame.text || '' })
+                  } else if (['notify', 'setStatus'].includes(frame.method)) await run.output.emit({ type: 'status', phase: 'working', message: frame.message || frame.text || '' })
                   else if (frame.method === 'form') transport.send({ type: 'extension_ui_response', id: frame.id, cancelled: true })
                 }
               }
               const args = ['--session-dir', nativeDirectory, '--append-system-prompt', promptPath, ...(selected ? ['--model', selected] : []), ...(nativeFile ? ['--resume', join(run.paths.runtimeDir, nativeFile)] : [])]
               rpc = await start(executable, directory, run.paths.workspaceDir, config, run.signal, events, args, true)
-              run.resources.add(() => rpc.close())
+              run.lifecycle.add(() => rpc.close())
               const state = await rpc.request('get_state')
               if (state.sessionFile && inside(run.paths.runtimeDir, state.sessionFile)) {
                 nativeFile = relative(run.paths.runtimeDir, state.sessionFile)

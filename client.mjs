@@ -33,7 +33,7 @@ const text = {
 export async function mount(root, ctx) {
   const t = text[(ctx.locale || navigator.language).startsWith('zh') ? 'zh' : 'en']
   let disposed = false
-  ctx.onDispose(() => { disposed = true })
+  ctx.lifecycle.add(() => { disposed = true })
   if (['skills', 'mcp'].includes(ctx.view)) return mountResources(root, ctx, t)
   const style = document.createElement('style')
   style.textContent = '.omp-settings{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:24px}.omp-settings h1{font-size:22px;margin:0}.omp-settings h2{font-size:16px;margin:0 0 12px}.omp-settings p{color:var(--text-secondary);line-height:1.6;margin:8px 0}.omp-section{border-bottom:1px solid var(--border-color);padding-bottom:20px}.omp-field{display:flex;flex-direction:column;gap:8px;margin:16px 0}.omp-field input,.omp-field textarea{width:100%}.omp-field textarea{font-family:ui-monospace,monospace;resize:vertical;min-height:160px;line-height:1.5}.omp-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.omp-settings a{color:var(--accent-primary)}.omp-error{color:var(--text-primary);white-space:pre-wrap}.omp-settings summary{cursor:pointer;color:var(--text-secondary)}.omp-settings pre{white-space:pre-wrap;overflow-wrap:anywhere}'
@@ -61,7 +61,7 @@ export async function mount(root, ctx) {
   const retry = element('button', t.retry); retry.type = 'button'; actions.append(save, retry)
   container.append(element('h1', t.title), element('p', t.intro), runtime, native, advanced, actions, status); root.append(style, container)
   async function load() {
-    const value = await ctx.rpc('get-settings')
+    const value = await ctx.rpc.call('get-settings')
     if (disposed) return
     executable.value = value.executable; model.value = value.defaultModel
     models.value = JSON.stringify(value.models, null, 2); config.value = JSON.stringify(value.config, null, 2)
@@ -72,7 +72,7 @@ export async function mount(root, ctx) {
   save.onclick = async () => {
     save.disabled = true
     try {
-      await ctx.rpc('save-settings', { executable: executable.value, defaultModel: model.value,
+      await ctx.rpc.call('save-settings', { executable: executable.value, defaultModel: model.value,
         models: JSON.parse(models.value), config: JSON.parse(config.value) })
       await load(); status.textContent = t.saved; ctx.ui.notify(t.saved, 'success')
     } catch (error) { if (!disposed) status.textContent = error.message }
@@ -85,7 +85,7 @@ export async function mount(root, ctx) {
 async function mountResources(root, ctx, t) {
   const skills = ctx.view === 'skills'
   let disposed = false, busy = false, loaded = false, items = [], editing = null, baseline = ''
-  ctx.onDispose(() => { disposed = true })
+  ctx.lifecycle.add(() => { disposed = true })
   const el = (tag, value, className) => {
     const node = document.createElement(tag)
     if (value) node.textContent = value
@@ -154,7 +154,7 @@ async function mountResources(root, ctx, t) {
     for (const node of list.querySelectorAll('button')) node.disabled = value
   }
   async function load() {
-    const result = await ctx.rpc(skills ? 'list-skills' : 'list-mcp')
+    const result = await ctx.rpc.call(skills ? 'list-skills' : 'list-mcp')
     if (disposed) return
     items = skills ? result.skills : result.servers
     loaded = true; renderList()
@@ -195,12 +195,12 @@ async function mountResources(root, ctx, t) {
       const actions = el('div', '', 'omp-buttons')
       const edit = button(t.edit, () => showEditor(item)); edit.setAttribute('aria-label', `${t.edit} ${item.name}`)
       const toggle = button(item.enabled ? t.disable : t.enable, () => operation(async () => {
-        await ctx.rpc(skills ? 'save-skill' : 'save-mcp', { ...item, enabled: !item.enabled }); await load()
+        await ctx.rpc.call(skills ? 'save-skill' : 'save-mcp', { ...item, enabled: !item.enabled }); await load()
         if (editing?.name === item.name) { editor.hidden = true; editing = null }
       }, t.savedResource)); toggle.setAttribute('aria-label', `${item.enabled ? t.disable : t.enable} ${item.name}`)
       const remove = button(t.remove, () => operation(async () => {
         if (!await ctx.ui.confirm(`${t.removeConfirm} (${item.name})`) || disposed) return
-        await ctx.rpc(skills ? 'remove-skill' : 'remove-mcp', { name: item.name }); await load()
+        await ctx.rpc.call(skills ? 'remove-skill' : 'remove-mcp', { name: item.name }); await load()
         if (!disposed && editing?.name === item.name) { editor.hidden = true; editing = null }
       })); remove.setAttribute('aria-label', `${t.remove} ${item.name}`)
       actions.append(toggle, edit, remove); row.append(summary, actions); list.append(row)
@@ -218,7 +218,7 @@ async function mountResources(root, ctx, t) {
         input.config = config
       }
       if (!editing && items.some(item => item.name === input.name)) throw new Error(t.duplicate)
-      await ctx.rpc(skills ? 'save-skill' : 'save-mcp', input)
+      await ctx.rpc.call(skills ? 'save-skill' : 'save-mcp', input)
       if (!disposed) { editor.hidden = true; editing = null; await load() }
     }, t.savedResource)
   }

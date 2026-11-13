@@ -9,12 +9,12 @@ export async function setup(t) {
   const directory = await mkdtemp(join(tmpdir(), 'omp-plugin-'))
   const methods = new Map(), records = new Map()
   let agent
-  const ctx = { paths: { dataDir: directory }, rpc: { register(name, fn) { methods.set(name, fn) } },
+  const ctx = { paths: { dataDir: directory }, extensions: { rpc: { register(name, fn) { methods.set(name, fn) } },
     agents: { register(value) { agent = value; return { dispose() {} } } },
-    storage: { namespace(...parts) { const prefix = JSON.stringify(parts); return {
+    }, state: { plugin: { namespace(...parts) { const prefix = JSON.stringify(parts); return {
       async get(key) { return records.get(prefix + key) },
       async set(key, value) { records.set(prefix + key, structuredClone(validateModel(contract, { settings: 'settings', skills: 'skillList', mcp: 'mcpList' }[key], value))) },
-    } } },
+    } } } },
   }
   const dispose = apply(ctx)
   t.after(async () => { dispose(); await rm(directory, { recursive: true, force: true }) })

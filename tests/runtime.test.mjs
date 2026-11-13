@@ -17,8 +17,8 @@ async function runtime(t) {
   await mkdir(paths.workspaceDir)
   const events = [], controller = new AbortController(), resources = []
   const run = { identity: { ...f.identity, sessionId: 'session', runId: 'run-1' }, paths, signal: controller.signal,
-    mode: 'global', model: { model: 'custom/test' }, mcpServers: {}, resources: { add(fn) { resources.push(fn) } },
-    events: { async emit(event) { events.push(event) } },
+    mode: 'global', model: { model: 'custom/test' }, mcpServers: {}, lifecycle: { add(fn) { resources.push(fn) } },
+    output: { async emit(event) { events.push(event) } },
     attachments: { async read() { return Uint8Array.of(1, 2, 3) }, async resolve() { return { localPath: join(paths.workspaceDir, 'file.txt') } } },
     interactions: { async approve() { return { outcome: 'denied' } }, async clarify() { return { outcome: 'dismissed' } } },
   }
@@ -56,7 +56,7 @@ test('cancelling a live turn closes the process and clears its temporary configu
   const f = await runtime(t)
   let started
   const ready = new Promise(resolve => { started = resolve })
-  f.run.events.emit = async event => { if (event.type === 'text.delta') started() }
+  f.run.output.emit = async event => { if (event.type === 'text.delta') started() }
   const running = f.session.run({ ...f.input, input: [{ type: 'text', text: 'hold' }] }, f.run)
   const rejected = assert.rejects(running, /Stopped by test/)
   await ready
