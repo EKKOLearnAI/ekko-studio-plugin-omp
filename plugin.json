@@ -1,8 +1,8 @@
 {
   "id": "omp",
   "name": "Oh My Pi",
-  "version": "0.1.7",
-  "apiVersion": 1,
+  "version": "0.2.0",
+  "apiVersion": 2,
   "description": "OMP Agent runtime for Studio, with native model configuration and Studio scoped models.",
   "icon": "icon.png",
   "author": {
@@ -13,10 +13,6 @@
   "license": "BSL-1.1",
   "server": "server.mjs",
   "client": "client.mjs",
-  "capabilities": [
-    "agents",
-    "ui"
-  ],
   "views": [
     {
       "id": "skills",
@@ -42,5 +38,9 @@
   ],
   "navigation": {},
   "homepage": "https://omp.sh/",
-  "issues": "https://github.com/EKKOLearnAI/ekko-studio-plugin-omp/issues"
+  "issues": "https://github.com/EKKOLearnAI/ekko-studio-plugin-omp/issues",
+  "permissions": [
+    "agents",
+    "ui"
+  ]
 }
