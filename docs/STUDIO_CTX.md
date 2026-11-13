@@ -67,7 +67,7 @@ Agent 不再覆盖默认存储。根 ctx.state 在回调内动态绑定真实身
 声明 `browser.cdp` 后，使用 `host.browser.tabs.list/create/close` 和 `host.browser.cdp.attach/send/events/release`。
 该权限独立于 api.read/api.write；host.request 不能绕过浏览器模块访问浏览器代理接口。
 仅使用当前账号/Profile 已授权共享、且仍绑定的桌面浏览器；无桌面或授权已撤销时明确失败。
-不开放调试端口或登录凭证，不创建另外的浏览器或浏览器 Profile。
+不开放调试端口或 Studio 认证凭证，不创建另外的浏览器或浏览器 Profile。CDP 可以访问当前页面的调试及会话数据。
 
 ```js
 const { tabs } = await ctx.host.browser.tabs.list()

@@ -17,7 +17,7 @@
   → PluginManager 激活 server.apply(ctx)
   → 注册 RPC / 工具 / 命令 / 事件 / 自动化 / Agent
   → Studio iframe 调用 client.mount(root, ctx)
-  → 前端 ctx.rpc / ctx.api 通过认证桥进入后端
+  → 前端 ctx.rpc.call / ctx.host 通过认证桥进入后端
 ```
 
 插件中心维护安装、启用、配置、回滚和卸载。插件全局安装一次，不按账号或 Profile 重复安装。
@@ -41,7 +41,7 @@
 每个视图由同一个客户端入口按 `ctx.view / slot / location` 渲染。路由变化会重新挂载。
 前端在不透明来源 iframe 内运行，不共享宿主 DOM、localStorage、登录 token。
 前端 bundle 必须自包含，框架可打包，资源需内联；iframe 不允许直接网络连接。
-宿主业务 API 使用 `ctx.api`，插件业务使用 `ctx.rpc`；不能通过相对模块或远程脚本加载额外客户端包。
+宿主业务 API 使用 `ctx.host`，插件业务使用 `ctx.rpc.call`；不能通过相对模块或远程脚本加载额外客户端包。
 `ctx.ui.selectModel()` 经页面桥接打开宿主现有的通用模型选择器；模型目录绑定该页面的 Profile，
 凭证和供应商地址留在宿主，只回传选中的模型引用。插件自行决定保存和调用，页面结束时关闭选择器。
 

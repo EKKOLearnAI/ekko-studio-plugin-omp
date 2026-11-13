@@ -18,7 +18,8 @@ export interface Schema {
   maxItems?: number
   secret?: boolean
 }
-export type PluginPermission = 'api.read' | 'api.write' | 'tools' | 'commands' | 'events' | 'hooks' | 'automation' | 'ui' | 'storage.client' | 'agents' | 'browser.cdp'
+export const PLUGIN_PERMISSIONS = ['api.read', 'api.write', 'tools', 'commands', 'events', 'hooks', 'automation', 'ui', 'storage.client', 'agents', 'browser.cdp'] as const
+export type PluginPermission = typeof PLUGIN_PERMISSIONS[number]
 /** Host-rendered line icons; settings navigation never accepts images or arbitrary SVG. */
 export const PLUGIN_ICON_PATHS = {
   settings: 'M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M8 15v6',

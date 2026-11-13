@@ -19,37 +19,37 @@ export interface HostApi {
 
   request<T = Json>(path: string, options?: ApiRequest): Promise<T>
   models: { list(): Promise<Json>; respond(input: Record<string, Json>): Promise<Json> }
-    sessions: {
-      list(query?: ApiQuery): Promise<Json>; get(id: string): Promise<Json>
-      create(input?: SessionCreateInput): Promise<Json>
-      /** Returns after the run starts/queues. Set wait:true to wait for completion. */
-      run(id: string, input: string | JsonObject[], options?: JsonObject): Promise<Json>
-      stop(id: string): Promise<Json>; remove(id: string): Promise<Json>
-      rename(id: string, title: string): Promise<Json>
-      archive(id: string, archived?: boolean): Promise<Json>
-      setModel(id: string, model: JsonObject): Promise<Json>
-      setWorkspace(id: string, workspace: string): Promise<Json>
-      messages(id: string, query?: ApiQuery): Promise<Json>
-    }
-    groupChats: {
-      list(): Promise<Json>; get(id: string): Promise<Json>
-      create(input: JsonObject & { name: string; inviteCode: string }): Promise<Json>
-      update(id: string, input: JsonObject): Promise<Json>; remove(id: string): Promise<Json>
-      send(id: string, content: string | JsonObject[], mentions?: Json[]): Promise<Json>
-      /** Interrupt one named agent using the same permissions as the chat UI. */
-      stop(id: string, agentName: string): Promise<Json>
-      messages(id: string, query?: ApiQuery): Promise<Json>
-      agents: { list(id: string): Promise<Json>; add(id: string, input: JsonObject): Promise<Json>; update(id: string, agentId: string, input: JsonObject): Promise<Json>; remove(id: string, agentId: string): Promise<Json> }
-    }
-    workflows: {
-      list(): Promise<Json>; get(id: string): Promise<Json>
-      create(input: JsonObject & { name: string }): Promise<Json>
-      update(id: string, input: JsonObject): Promise<Json>; remove(id: string): Promise<Json>
-      run(id: string, input?: string): Promise<Json>; stop(id: string, runId: string): Promise<Json>
-      runs(id: string): Promise<Json>; getRun(id: string, runId: string): Promise<Json>
-      schedules: { list(id: string): Promise<Json>; create(id: string, input: JsonObject): Promise<Json>; update(id: string, scheduleId: string, input: JsonObject): Promise<Json>; remove(id: string, scheduleId: string): Promise<Json> }
-    }
-    files: { list(path?: string): Promise<Json>; read(path: string): Promise<Json> }
+  sessions: {
+    list(query?: ApiQuery): Promise<Json>; get(id: string): Promise<Json>
+    create(input?: SessionCreateInput): Promise<Json>
+    /** Returns after the run starts/queues. Set wait:true to wait for completion. */
+    run(id: string, input: string | JsonObject[], options?: JsonObject): Promise<Json>
+    stop(id: string): Promise<Json>; remove(id: string): Promise<Json>
+    rename(id: string, title: string): Promise<Json>
+    archive(id: string, archived?: boolean): Promise<Json>
+    setModel(id: string, model: JsonObject): Promise<Json>
+    setWorkspace(id: string, workspace: string): Promise<Json>
+    messages(id: string, query?: ApiQuery): Promise<Json>
+  }
+  groupChats: {
+    list(): Promise<Json>; get(id: string): Promise<Json>
+    create(input: JsonObject & { name: string; inviteCode: string }): Promise<Json>
+    update(id: string, input: JsonObject): Promise<Json>; remove(id: string): Promise<Json>
+    send(id: string, content: string | JsonObject[], mentions?: Json[]): Promise<Json>
+    /** Interrupt one named agent using the same permissions as the chat UI. */
+    stop(id: string, agentName: string): Promise<Json>
+    messages(id: string, query?: ApiQuery): Promise<Json>
+    agents: { list(id: string): Promise<Json>; add(id: string, input: JsonObject): Promise<Json>; update(id: string, agentId: string, input: JsonObject): Promise<Json>; remove(id: string, agentId: string): Promise<Json> }
+  }
+  workflows: {
+    list(): Promise<Json>; get(id: string): Promise<Json>
+    create(input: JsonObject & { name: string }): Promise<Json>
+    update(id: string, input: JsonObject): Promise<Json>; remove(id: string): Promise<Json>
+    run(id: string, input?: string): Promise<Json>; stop(id: string, runId: string): Promise<Json>
+    runs(id: string): Promise<Json>; getRun(id: string, runId: string): Promise<Json>
+    schedules: { list(id: string): Promise<Json>; create(id: string, input: JsonObject): Promise<Json>; update(id: string, scheduleId: string, input: JsonObject): Promise<Json>; remove(id: string, scheduleId: string): Promise<Json> }
+  }
+  files: { list(path?: string): Promise<Json>; read(path: string): Promise<Json> }
 }
 export function createHostApi(request: HostApi['request'], browserRequest?: BrowserTransport): HostApi {
   const id = encodeURIComponent
