@@ -93,3 +93,6 @@ secret 输入和不支持的 form 自动取消，普通状态经 status 事件�
 清单使用 permissions，Agent 功能声明使用 features。注册使用 extensions，前端使用 rpc.call，
 存储使用 state.plugin，清理使用 lifecycle，Agent 输出使用 output。只维护这份最新契约。
 SDK 与模板包含 host.browser.cdp 的权限和调用契约；OMP 自身没有声明或自动使用 browser.cdp。
+
+SDK 同步包含完整单聊 `host.sessions.connect` 与 BOT `host.bots` 模块，复用宿主核心实时协议。
+OMP 自身仍只声明 agents/ui；需要调用这些宿主业务的插件应显式声明 api.read/api.write。
