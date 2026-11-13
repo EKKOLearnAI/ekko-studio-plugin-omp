@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "OMP 设置 RPC、账号存储和本地恢复格式；Agent 删除及自动更新能力使用 sdk/src/agents.ts，具体数据保留语义见 docs/CONTRACTS.md。",
+  "description": "OMP 设置、Skill/MCP 管理 RPC、账号隔离存储和本地恢复格式；宿主管理接口见 sdk/src/agents.ts。",
   "models": {
     "empty": {
       "type": "null",
@@ -298,6 +298,254 @@
         "data"
       ],
       "additionalProperties": false
+    },
+    "skillList": {
+      "type": "array",
+      "description": "当前真实账号/Profile 保存的 Skill，包含正文，最多 200 项。",
+      "items": {
+        "type": "object",
+        "description": "插件管理的一个 Markdown Skill；name 同时用作唯一标识及目录名。",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "小写字母、数字和单个连字符组成的名称。",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "description": "供模型选择 Skill 的说明。",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "content": {
+            "type": "string",
+            "description": "SKILL.md 的 Markdown 正文，不含 frontmatter；运行时自动添加 name 和 description。",
+            "minLength": 1,
+            "maxLength": 200000
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "是否在下一轮 OMP 运行中加载。"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "content",
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 200
+    },
+    "mcpList": {
+      "type": "array",
+      "description": "当前真实账号/Profile 保存的 MCP 服务，最多 200 项；前端 env/headers 及凭证字段遮蔽。",
+      "items": {
+        "type": "object",
+        "description": "插件管理的 MCP 服务；enabled 单独控制开关。",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "服务唯一名称，允许字母、数字、下划线、点和连字符。",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "是否合并到下一轮 OMP 的 MCP 配置。"
+          },
+          "config": {
+            "type": "object",
+            "description": "OMP 原生 MCP 服务定义，使用 stdio/command/args/env 或 http、sse/url/headers；其他原生字段保留，禁止内嵌 enabled。",
+            "properties": {},
+            "required": [],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "name",
+          "enabled",
+          "config"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 200
+    },
+    "skill": {
+      "type": "object",
+      "description": "插件管理的一个 Markdown Skill；name 同时用作唯一标识及目录名。",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "小写字母、数字和单个连字符组成的名称。",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "description": {
+          "type": "string",
+          "description": "供模型选择 Skill 的说明。",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "content": {
+          "type": "string",
+          "description": "SKILL.md 的 Markdown 正文，不含 frontmatter；运行时自动添加 name 和 description。",
+          "minLength": 1,
+          "maxLength": 200000
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "是否在下一轮 OMP 运行中加载。"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "content",
+        "enabled"
+      ],
+      "additionalProperties": false
+    },
+    "mcpServer": {
+      "type": "object",
+      "description": "插件管理的 MCP 服务；enabled 单独控制开关。",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "服务唯一名称，允许字母、数字、下划线、点和连字符。",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "是否合并到下一轮 OMP 的 MCP 配置。"
+        },
+        "config": {
+          "type": "object",
+          "description": "OMP 原生 MCP 服务定义，使用 stdio/command/args/env 或 http、sse/url/headers；其他原生字段保留，禁止内嵌 enabled。",
+          "properties": {},
+          "required": [],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "name",
+        "enabled",
+        "config"
+      ],
+      "additionalProperties": false
+    },
+    "resourceName": {
+      "type": "object",
+      "description": "要删除的本账号资源名称。",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Skill 或 MCP 服务的现有唯一名称。",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "skillsResult": {
+      "type": "object",
+      "description": "本账号/Profile 的 Skill 管理列表。",
+      "properties": {
+        "skills": {
+          "type": "array",
+          "description": "当前真实账号/Profile 保存的 Skill，包含正文，最多 200 项。",
+          "items": {
+            "type": "object",
+            "description": "插件管理的一个 Markdown Skill；name 同时用作唯一标识及目录名。",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "小写字母、数字和单个连字符组成的名称。",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "description": {
+                "type": "string",
+                "description": "供模型选择 Skill 的说明。",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "content": {
+                "type": "string",
+                "description": "SKILL.md 的 Markdown 正文，不含 frontmatter；运行时自动添加 name 和 description。",
+                "minLength": 1,
+                "maxLength": 200000
+              },
+              "enabled": {
+                "type": "boolean",
+                "description": "是否在下一轮 OMP 运行中加载。"
+              }
+            },
+            "required": [
+              "name",
+              "description",
+              "content",
+              "enabled"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "skills"
+      ],
+      "additionalProperties": false
+    },
+    "mcpResult": {
+      "type": "object",
+      "description": "本账号/Profile 的 MCP 管理列表；不返回 Studio 本轮注入的受管服务。",
+      "properties": {
+        "servers": {
+          "type": "array",
+          "description": "当前真实账号/Profile 保存的 MCP 服务，最多 200 项；前端 env/headers 及凭证字段遮蔽。",
+          "items": {
+            "type": "object",
+            "description": "插件管理的 MCP 服务；enabled 单独控制开关。",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "服务唯一名称，允许字母、数字、下划线、点和连字符。",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "enabled": {
+                "type": "boolean",
+                "description": "是否合并到下一轮 OMP 的 MCP 配置。"
+              },
+              "config": {
+                "type": "object",
+                "description": "OMP 原生 MCP 服务定义，使用 stdio/command/args/env 或 http、sse/url/headers；其他原生字段保留，禁止内嵌 enabled。",
+                "properties": {},
+                "required": [],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "name",
+              "enabled",
+              "config"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "servers"
+      ],
+      "additionalProperties": false
     }
   },
   "rpc": {
@@ -309,6 +557,36 @@
     "save-settings": {
       "description": "校验路径和原生配置后保存，保留遮蔽值对应的原密钥。",
       "input": "settingsInput",
+      "output": "saved"
+    },
+    "list-skills": {
+      "description": "读取当前真实账号/Profile 的 Skill 列表。",
+      "input": "empty",
+      "output": "skillsResult"
+    },
+    "save-skill": {
+      "description": "创建或更新同名 Skill；修改在下一轮生效。",
+      "input": "skill",
+      "output": "saved"
+    },
+    "remove-skill": {
+      "description": "移除本账号下的同名 Skill；已运行的轮次不受影响。",
+      "input": "resourceName",
+      "output": "saved"
+    },
+    "list-mcp": {
+      "description": "读取当前真实账号/Profile 的 MCP 列表，遮蔽 env/headers 及凭证。",
+      "input": "empty",
+      "output": "mcpResult"
+    },
+    "save-mcp": {
+      "description": "创建或更新同名 MCP 配置；遮蔽值恢复为该服务原值，修改在下一轮生效。",
+      "input": "mcpServer",
+      "output": "saved"
+    },
+    "remove-mcp": {
+      "description": "移除本账号下的同名 MCP 服务；不操作 Studio 受管服务。",
+      "input": "resourceName",
       "output": "saved"
     }
   },
@@ -330,6 +608,18 @@
       "model": "sessionPointer",
       "version": 1,
       "scope": "session.paths.runtimeDir/native-session.json"
+    },
+    "skills": {
+      "description": "独立的 Skill 列表；缺失按空列表读取，保留原设置和 checkpoint。",
+      "model": "skillList",
+      "version": 1,
+      "scope": "namespace('accounts', sha256(JSON.stringify([userId, profile]))).skills"
+    },
+    "mcp": {
+      "description": "独立的 MCP 列表，含明文私有凭证；缺失按空列表读取，不共享其他账号。",
+      "model": "mcpList",
+      "version": 1,
+      "scope": "namespace('accounts', sha256(JSON.stringify([userId, profile]))).mcp"
     }
   },
   "tools": {},

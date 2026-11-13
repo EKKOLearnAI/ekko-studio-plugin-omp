@@ -1,16 +1,18 @@
 {
   "name": "@ekko-studio/plugin-omp",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "type": "module",
   "private": true,
   "scripts": {
     "dev": "ekko-studio plugins dev .",
     "harness:check": "node scripts/plugin-harness.mjs check",
     "test": "node --test tests/*.test.mjs",
-    "prepack": "npm run harness:check && npm test && npm run build --if-present && npm run harness:check"
+    "prepack": "npm run harness:check && npm test && npm run build --if-present && npm run harness:check",
+    "test:e2e": "playwright test --config tests/playwright.config.mjs"
   },
   "devDependencies": {
-    "@ekko-studio/plugin-sdk": "file:./sdk"
+    "@ekko-studio/plugin-sdk": "file:./sdk",
+    "@playwright/test": "1.60.0"
   },
   "license": "BSL-1.1",
   "description": "OMP Agent runtime plugin for Ekko Studio",

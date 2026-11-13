@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createInterface } from 'node:readline'
-import { readFileSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 if (process.argv.includes('--version')) { console.log('18.19.0'); process.exit(0) }
 const directory = process.env.PI_CODING_AGENT_DIR
@@ -23,7 +23,13 @@ createInterface({ input: process.stdin }).on('line', line => {
     response({ agentInvoked: true })
     send({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'preview' } })
     if (command.message === 'hold') return
-    const text = `fixture turn ${++turns}; images=${command.images?.length || 0}; model=${model.provider}/${model.id}`
+    ++turns
+    const config = JSON.parse(readFileSync(join(directory, 'config.yml'), 'utf8'))
+    const text = command.message === 'inspect-resources' ? JSON.stringify({
+      noSkills: process.argv.includes('--no-skills'),
+      skills: (config.skills?.customDirectories || []).flatMap(path => readdirSync(path)),
+      mcp: JSON.parse(readFileSync(join(directory, 'mcp.json'), 'utf8')).mcpServers,
+    }) : `fixture turn ${turns}; images=${command.images?.length || 0}; model=${model.provider}/${model.id}`
     writeFileSync(sessionFile, String(turns))
     send({ type: 'tool_execution_start', toolCallId: 'read-1', toolName: 'read', args: { path: 'fixture.txt' } })
     send({ type: 'tool_execution_end', toolCallId: 'read-1', result: { text: 'x'.repeat(110000) }, isError: false })

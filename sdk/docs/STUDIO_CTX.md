@@ -50,7 +50,7 @@ config 不含 secret，storage 仅在清单声明 `storage.client` 时开放本�
 | 成员 | 说明 |
 | --- | --- |
 | `locale` | 当前语言，可选；切换语言会重新挂载。 |
-| `view / slot` | 当前声明的视图与入口类型，包括 workspace-sidebar。 |
+| `view / slot` | 当前声明的视图与布局类型，包括 agent-settings 和 workspace-sidebar；全局入口由 navigation 独立声明。 |
 | `location.path/query` | 当前插件路由和参数，参数不能用作可信身份。 |
 | `data` | 宿主传入的 JSON 数据；未提供时为 null。 |
 | `rpc(name, input?)` | 默认 input=null，Promise 返回插件后端的 JSON 值。 |
@@ -80,6 +80,12 @@ config 不含 secret，storage 仅在清单声明 `storage.client` 时开放本�
 | `AgentSessionContext` | identity（含 agentId/sessionId）、mode、paths.runtimeDir/workspaceDir、可选 resumeState、signal、log、resources.add。 |
 | `AgentRunContext` | 继承普通 RunContext；identity 增加 runId；增加 paths、deadlineAt、log、resources、events、mcpServers、interactions、attachments、mode/model。 |
 
+`management.remove(ctx)` 只删除插件管理的引擎，保留设置、凭证和会话数据。
+`management.supportsAutoUpdate(ctx)` 返回当前安装是否支持无人值守更新，未提供则为 false；
+声明它时必须同时提供 `checkUpdate/upgrade`，外部可执行文件应返回 false。
+自动更新偏好、定时检查和闲置等待由宿主管理，使用插件激活身份；手动请求保留真实调用者身份。
+宿主在引擎删除/升级期间阻止新运行，有在途任务时拒绝维护，并在完成后重新探测状态。
+
 `events.emit(event)` 返回 Promise，必须 await，提供背压。运行最长一小时，父任务可更早取消。
 `resources.add(dispose)` 分别登记单轮或会话资源。`mcpServers` 是本轮受管 MCP 配置，凭证不得留到下一轮。
 `interactions.approve` 只有 outcome=approved 才能继续；denied/cancelled/timeout 都不能当作批准。
@@ -87,3 +93,8 @@ config 不含 secret，storage 仅在清单声明 `storage.client` 时开放本�
 `attachments.resolve(assetId)` 返回元信息及 localPath；read 返回 Uint8Array，均校验访问权限。
 scoped 的 model 包括 provider/model/apiMode/baseUrl/token/reasoningEffort/contextWindow/outputLimit；
 global 的 model 只有可选原生 model/reasoningEffort。
+
+Agent 运行身份中的 `workspace` 与 `paths.workspaceDir` 对应本轮实际工作区；
+`workspace.read/write()` 仍受当前账号及会话的宿主权限约束。
+`input.history` 来自完整持久会话，不受聊天界面分页条数限制，也不包含本轮输入。
+Bot 任务使用任务所属账号及 Profile 调用插件；私有任务会话必须存在该账号的任务执行记录。

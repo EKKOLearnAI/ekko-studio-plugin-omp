@@ -4,6 +4,9 @@ import { randomUUID } from 'node:crypto'
 import { childEnvironment, engineStatus, latestVersion, selectedExecutable, installEngine, removeEngine, binaryAsset } from './engine.mjs'
 import { OmpRpc } from './rpc.mjs'
 import { readSettings, saveSettings, maskSecrets, accountKey } from './settings.mjs'
+import { readResources, saveSkill, saveServer, removeResource, visibleServers, runtimeResources } from './resources.mjs'
+import contract from './contracts/plugin.json' with { type: 'json' }
+import { registerRpc } from './sdk/harness/contracts.mjs'
 
 const api = { chat_completions: 'openai-completions', codex_responses: 'openai-responses', anthropic_messages: 'anthropic-messages' }
 const inside = (root, file) => { const path = relative(root, file); return !!path && path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path) }
@@ -19,8 +22,8 @@ async function configuration(directory, models, config, mcpServers) {
     writeFile(join(directory, 'mcp.json'), JSON.stringify({ mcpServers: mcpServers || {} }), { mode: 0o600 }),
   ])
 }
-async function start(executable, directory, workspace, config, signal, events, args = []) {
-  const rpc = new OmpRpc(executable, ['--mode', 'rpc-ui', '--no-extensions', '--no-skills', '--config', join(directory, 'config.yml'), ...args], {
+async function start(executable, directory, workspace, config, signal, events, args = [], skills = false) {
+  const rpc = new OmpRpc(executable, ['--mode', 'rpc-ui', '--no-extensions', ...(!skills ? ['--no-skills'] : []), '--config', join(directory, 'config.yml'), ...args], {
     cwd: workspace, env: childEnvironment(directory), signal, onEvent: events,
   })
   try { await rpc.initialize(); return rpc } catch (error) { await rpc.close(); throw error }
@@ -42,15 +45,21 @@ async function catalog(ctx, identity, signal) {
 }
 export function apply(ctx) {
   const dataDir = ctx.paths.dataDir
-  ctx.rpc.register('get-settings', async (_input, run) => ({ ...maskSecrets(await readSettings(ctx, run.identity)),
+  registerRpc(ctx, contract, 'get-settings', async (_input, run) => ({ ...maskSecrets(await readSettings(ctx, run.identity)),
     status: await engineStatus(dataDir, (await readSettings(ctx, run.identity)).executable, run.signal) }))
-  ctx.rpc.register('save-settings', (input, run) => saveSettings(ctx, run.identity, input))
+  registerRpc(ctx, contract, 'save-settings', (input, run) => saveSettings(ctx, run.identity, input))
+  registerRpc(ctx, contract, 'list-skills', async (_input, run) => ({ skills: await readResources(ctx, run.identity, 'skills') }))
+  registerRpc(ctx, contract, 'save-skill', (input, run) => saveSkill(ctx, run.identity, input))
+  registerRpc(ctx, contract, 'remove-skill', (input, run) => removeResource(ctx, run.identity, 'skills', input.name))
+  registerRpc(ctx, contract, 'list-mcp', async (_input, run) => ({ servers: visibleServers(await readResources(ctx, run.identity, 'mcp')) }))
+  registerRpc(ctx, contract, 'save-mcp', (input, run) => saveServer(ctx, run.identity, input))
+  registerRpc(ctx, contract, 'remove-mcp', (input, run) => removeResource(ctx, run.identity, 'mcp', input.name))
   const registration = ctx.agents.register({
     id: 'omp', name: 'Oh My Pi', vendor: 'Stencil Labs', agentApiVersion: 1,
     description: 'OMP coding Agent with native global models and Studio scoped models.',
     getStatus: async run => { await mkdir(dataDir, { recursive: true, mode: 0o700 }); return engineStatus(dataDir, (await readSettings(ctx, run.identity)).executable, run.signal) },
     management: {
-      settings: () => ({ viewId: 'settings' }),
+      settings: () => ({ viewId: 'skills' }),
       checkUpdate: async run => {
         const settings = await readSettings(ctx, run.identity), status = await engineStatus(dataDir, settings.executable, run.signal)
         if (settings.executable) return { currentVersion: status.version, latestVersion: status.version, updateAvailable: false, message: 'This executable is managed outside Studio.' }
@@ -95,7 +104,11 @@ export function apply(ctx) {
             }
             let rpc
             try {
-              await configuration(directory, models, config, run.mcpServers)
+              const resources = await runtimeResources(ctx, run.identity, directory, run.mcpServers, run.signal)
+              config.skills = { ...config.skills, enabled: true, enableCodexUser: false, enableClaudeUser: false, enableClaudeProject: false,
+                enablePiUser: false, enablePiProject: false, enableAgentsUser: false, enableAgentsProject: false,
+                customDirectories: [resources.skillDirectory, ...(Array.isArray(config.skills?.customDirectories) ? config.skills.customDirectories : [])] }
+              await configuration(directory, models, config, resources.mcpServers)
               await mkdir(nativeDirectory, { recursive: true, mode: 0o700 })
               const history = nativeFile ? '' : (await Promise.all(input.history.map(async message => `${message.role}: ${(await Promise.all(message.content.map(async part => part.type === 'text' ? part.text : `${part.type}: ${(await run.attachments.resolve(part.assetId)).localPath}`))).join('\n')}`))).join('\n')
               const instructions = [...input.instructions.map(item => item.text), ...(history ? [`Previous Studio conversation:\n${history}`] : [])].join('\n\n')
@@ -142,7 +155,7 @@ export function apply(ctx) {
                 }
               }
               const args = ['--session-dir', nativeDirectory, '--append-system-prompt', promptPath, ...(selected ? ['--model', selected] : []), ...(nativeFile ? ['--resume', join(run.paths.runtimeDir, nativeFile)] : [])]
-              rpc = await start(executable, directory, run.paths.workspaceDir, config, run.signal, events, args)
+              rpc = await start(executable, directory, run.paths.workspaceDir, config, run.signal, events, args, true)
               run.resources.add(() => rpc.close())
               const state = await rpc.request('get_state')
               if (state.sessionFile && inside(run.paths.runtimeDir, state.sessionFile)) {

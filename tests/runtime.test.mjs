@@ -71,3 +71,22 @@ test('checkpoints cannot point outside the assigned runtime directory', async t 
     await assert.rejects(f.agent.runtime.createSession({ paths: f.run.paths, resumeState: { schemaVersion: 1, data: { sessionFile } } }), /Invalid OMP session checkpoint/)
   }
 })
+
+test('each resumed turn applies current skill/MCP settings and removes temporary resource snapshots', async t => {
+  const f = await runtime(t)
+  const skill = { name: 'review', description: 'Review code', content: 'Read the diff.', enabled: true }
+  await f.call('save-skill', skill)
+  await f.call('save-mcp', { name: 'local', enabled: true, config: { command: 'node', env: { KEY: 'saved' } } })
+  const input = { ...f.input, input: [{ type: 'text', text: 'inspect-resources' }] }
+  const result = await f.session.run(input, f.run)
+  const snapshot = JSON.parse(result.content[0].text)
+  assert.equal(snapshot.noSkills, false)
+  assert.deepEqual(snapshot.skills, ['review'])
+  assert.equal(snapshot.mcp.local.env.KEY, 'saved')
+  await assert.rejects(readFile(join(f.run.paths.runtimeDir, 'turns/run-1/skills/review/SKILL.md')), { code: 'ENOENT' })
+  await f.call('save-skill', { ...skill, enabled: false })
+  await f.call('remove-mcp', { name: 'local' })
+  const next = await f.session.run(input, { ...f.run, identity: { ...f.run.identity, runId: 'run-2' } })
+  assert.deepEqual(JSON.parse(next.content[0].text).skills, [])
+  assert.deepEqual(JSON.parse(next.content[0].text).mcp, {})
+})

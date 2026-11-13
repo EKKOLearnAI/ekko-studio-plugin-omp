@@ -25,13 +25,35 @@
 再次保存遮蔽值时恢复原密钥；数组内模型按 id 匹配。禁止原型污染字段。
 开放原生对象的语义由 OMP 校验，本地 harness 只验证其为 JSON 对象。
 
+## Skill、MCP 管理与入口
+
+清单声明 skills、mcp、settings 三个 agent-settings 页面，分别使用 skills、mcp、settings 命名 icon。
+Agent 管理中的设置按钮打开 skills，同类页面由宿主显示专属侧栏，返回 Agent 管理。
+`navigation: {}` 表示不注册主侧栏或设置侧栏入口。需要支持独立 navigation 和 agent-settings 页面的 Studio；无需在宿主添加 OMP 专用代码。
+
+- `list-skills(null)` 返回 `{ skills }`；`save-skill({name,description,content,enabled})` 创建或更新同名 Skill，`remove-skill({name})` 删除。
+  name 使用小写字母、数字和单个连字符，最多 64 字符；description 非空且最多 2000 字符；content 是非空 Markdown 正文，最多 200000 字符。
+  UI 编辑已有名称时保持名称不变；SKILL.md 的 name/description frontmatter 由运行时生成，用户填写正文。
+- `list-mcp(null)` 返回 `{ servers }`；`save-mcp({name,enabled,config})` 保存一个 OMP 原生 MCP 定义，`remove-mcp({name})` 删除。
+  name 最多 64 字符，允许字母、数字、下划线、点、连字符。stdio 要求 command，args 为字符串数组；http/sse 要求 HTTP(S) url。
+  禁止同时填写 command 与 url；env/headers 必须为字符串映射。enabled 由外层字段控制，config 内禁止 enabled。其他原生字段保留并由 OMP 校验。
+  所有 env/headers 非空值及常规凭证字段遮蔽；保存遮蔽值时按服务名、字段名保留旧值，没有原值则报错。普通账号的列表不包含 Studio 本轮注入的服务。
+- 写操作成功后返回 `{ok:true}`。每类最多 200 项，整类序列化不超过 2000000 字节；名称禁止原型污染字段。
+  每个账号/Profile 的同类写操作串行，避免同时保存造成丢失。真实身份始终来自 run.identity。
+
+skills 与 mcp 分别保存在同一个账号 namespace 的独立键中，版本均为 1；旧安装缺少键时读取为空列表，不迁移或重写已有 settings/checkpoint。
+每轮只将启用 Skill 写入临时 `skills/<name>/SKILL.md`，通过 `skills.customDirectories` 加载；运行时不再传 --no-skills，模型目录探测仍禁用 Skill。
+常规外部用户/项目 Skill 来源关闭；高级 config.skills.customDirectories 仍可追加目录，其余 OMP 过滤规则保留。管理页为准的 enabled 与隔离目录由插件注入。
+每轮将启用的 MCP 服务与 run.mcpServers 合并，同名服务整个使用 Studio 本轮注入值，不合并或持久化短期凭证。
+两类变更都从下一轮（包括已恢复的会话）生效，在途轮次使用启动时快照；finally 删除临时 Skill 和 MCP 文件。
+
 ## Agent 运行与回传
 
 注册本地 Agent `omp`，宿主映射为 `plugin:omp/omp`。支持 chat/group-chat/workflow/api，
 global 原生模型及 scoped 的 chat_completions/codex_responses/anthropic_messages。
 global 模型目录通过临时 RPC 进程的 `get_available_models` 获取。
 引擎未安装返回 `not_installed`；无可用模型返回 `auth_required`；可用时返回 `ready`。
-管理接口返回状态、设置路由 `{ viewId: 'settings' }`、版本检查及 `{ installedVersion }`。
+管理接口返回状态、设置路由 `{ viewId: 'skills' }`、版本检查及 `{ installedVersion }`。
 `management.remove(ctx)` 仅移除私有目录内的 `engine.json` 与 `engines/`，保留设置、模型缓存和会话。
 `management.supportsAutoUpdate(ctx)` 返回 boolean；受支持平台的受管引擎返回 true，
 配置自定义可执行文件时返回 false，删除也会拒绝该外部文件。宿主负责持久化开关、闲置等待与运行互斥，
@@ -62,8 +84,10 @@ secret 输入和不支持的 form 自动取消，普通状态经 status 事件�
 - `native-session.json`：`{ sessionFile: string }`，路径相对该会话 runtimeDir。
 - checkpoint：`{ schemaVersion: 1, data: { sessionFile: string | null } }`。
   null 表示新会话；绝对路径或越界路径拒绝，文件不存在则开启新会话。
-- `turns/<runId>/`：models.yml、config.yml、mcp.json、instructions.md，仅本轮存在。
+- `turns/<runId>/`：models.yml、config.yml、mcp.json、instructions.md 和启用的 skills/，仅本轮存在。
 - `sessions/`：OMP 自己维护的原生会话记录，不解析或自行迁移其内部格式。
+
+0.1.7 增加独立的三页 Agent 设置、Skill/MCP 管理与运行时快照，新增存储键默认空列表，保留旧设置和恢复格式。
 
 0.1.6 改用官方 Release 跳转查询版本，避免匿名 API 配额耗尽导致安装或更新失败；不改变数据格式。
 

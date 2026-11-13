@@ -13,7 +13,7 @@ export async function setup(t) {
     agents: { register(value) { agent = value; return { dispose() {} } } },
     storage: { namespace(...parts) { const prefix = JSON.stringify(parts); return {
       async get(key) { return records.get(prefix + key) },
-      async set(key, value) { records.set(prefix + key, structuredClone(validateModel(contract, 'settings', value))) },
+      async set(key, value) { records.set(prefix + key, structuredClone(validateModel(contract, { settings: 'settings', skills: 'skillList', mcp: 'mcpList' }[key], value))) },
     } } },
   }
   const dispose = apply(ctx)

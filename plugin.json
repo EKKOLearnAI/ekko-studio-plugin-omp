@@ -1,7 +1,7 @@
 {
   "id": "omp",
   "name": "Oh My Pi",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "apiVersion": 1,
   "description": "OMP Agent runtime for Studio, with native model configuration and Studio scoped models.",
   "icon": "icon.png",
@@ -19,11 +19,28 @@
   ],
   "views": [
     {
+      "id": "skills",
+      "title": "Skill 管理",
+      "slot": "agent-settings",
+      "icon": "skills",
+      "order": 0
+    },
+    {
+      "id": "mcp",
+      "title": "MCP 管理",
+      "slot": "agent-settings",
+      "icon": "mcp",
+      "order": 1
+    },
+    {
       "id": "settings",
-      "title": "OMP",
-      "slot": "settings"
+      "title": "配置编辑",
+      "slot": "agent-settings",
+      "icon": "settings",
+      "order": 2
     }
   ],
+  "navigation": {},
   "homepage": "https://omp.sh/",
   "issues": "https://github.com/EKKOLearnAI/ekko-studio-plugin-omp/issues"
 }

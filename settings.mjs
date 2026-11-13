@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto'
 import { isAbsolute } from 'node:path'
+import contract from './contracts/plugin.json' with { type: 'json' }
+import { validateModel } from './sdk/harness/contracts.mjs'
 
 const MASK = '••••••••'
 const secret = /(?:api.?key|token|secret|password|authorization|cookie)$/i
@@ -7,14 +9,14 @@ const plain = value => value && typeof value === 'object' && !Array.isArray(valu
 export const accountKey = identity => createHash('sha256').update(JSON.stringify([identity.userId, identity.profile])).digest('hex')
 export const settingsStore = (ctx, identity) => ctx.storage.namespace('accounts', accountKey(identity))
 export async function readSettings(ctx, identity) {
-  return await settingsStore(ctx, identity).get('settings') || { executable: '', defaultModel: '', models: { providers: {} }, config: {} }
+  return validateModel(contract, 'settings', await settingsStore(ctx, identity).get('settings') || { executable: '', defaultModel: '', models: { providers: {} }, config: {} })
 }
 export function maskSecrets(value) {
   if (Array.isArray(value)) return value.map(maskSecrets)
   if (!plain(value)) return value
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, secret.test(key) && typeof item === 'string' && item ? MASK : maskSecrets(item)]))
 }
-function mergeSecrets(value, old) {
+export function mergeSecrets(value, old) {
   if (Array.isArray(value)) return value.map((item, index) => mergeSecrets(item, item?.id ? old?.find?.(other => other?.id === item.id) : old?.[index]))
   if (!plain(value)) return value
   return Object.fromEntries(Object.entries(value).map(([key, item]) => {
@@ -34,6 +36,6 @@ export async function saveSettings(ctx, identity, input) {
   if (Buffer.byteLength(JSON.stringify(input)) > 500000) throw new Error('OMP configuration is too large')
   const old = await readSettings(ctx, identity)
   const value = { executable: input.executable.trim(), defaultModel: input.defaultModel.trim(), models: mergeSecrets(input.models, old.models), config: mergeSecrets(input.config, old.config) }
-  await settingsStore(ctx, identity).set('settings', value)
+  await settingsStore(ctx, identity).set('settings', validateModel(contract, 'settings', value))
   return { ok: true }
 }
