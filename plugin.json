@@ -10,7 +10,7 @@
   },
   "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-omp",
   "documentation": "https://github.com/EKKOLearnAI/ekko-studio-plugin-omp/blob/main/README.md",
-  "license": "BSL-1.1",
+  "license": "MIT",
   "server": "server.mjs",
   "client": "client.mjs",
   "views": [

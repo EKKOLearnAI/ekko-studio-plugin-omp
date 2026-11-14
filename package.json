@@ -14,7 +14,7 @@
     "@ekko-studio/plugin-sdk": "file:./sdk",
     "@playwright/test": "1.60.0"
   },
-  "license": "BSL-1.1",
+  "license": "MIT",
   "description": "OMP Agent runtime plugin for Ekko Studio",
   "engines": {
     "node": ">=24"

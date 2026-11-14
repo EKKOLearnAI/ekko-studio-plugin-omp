@@ -87,5 +87,5 @@ Studio 将此仓库固定提交的包作为构建依赖，并随自身版本打�
 Studio 的依赖和锁文件。不要在 Studio 中另维护一份 OMP 源码。
 插件中心的“提交插件”可提交本仓库供审核；提交审核不等于上架。
 
-适配器及随附 Studio SDK 使用 [BSL-1.1](LICENSE)。OMP 引擎另附其上游许可证。
+适配器及随附 Studio SDK 使用 [MIT 许可证](LICENSE) 开源。OMP 引擎另附其上游许可证。
 图标来自官网原始 SVG，来源及第三方声明见 [OMP-NOTICE.txt](OMP-NOTICE.txt)。
